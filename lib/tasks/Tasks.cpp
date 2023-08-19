@@ -3,6 +3,7 @@
 
 QueueHandle_t qUART;
 QueueHandle_t qSerialCommands;
+// QueueHandle_t qTaskManager;
 
 void readButtons(bool arr[MAX_DIG_COUNT], bool digPins[MAX_DIG_COUNT])
 {
@@ -43,7 +44,7 @@ void constructByteArray(MessageStruct *joystick, byte arr[BYTE_ARRAY_SIZE])
         arr[i * 2 + 1] = joystick->adc[i] >> 8;
         arr[i * 2 + 2] = joystick->adc[i] & 0xFF;
         if (uart_debug_mode)
-            logMsg(__ASSERT_FUNC, numToBin(arr[i * 2 + 1]), pdPASS, i * 2 + 1);
+            logMsg(__ASSERT_FUNC, numToBin(arr[i * 2 + 1]).c_str(), pdPASS, i * 2 + 1);
     }
 #ifdef USING_SINGLE_BYTE_FOR_BUTTONS
 
@@ -87,21 +88,32 @@ void adcReadTask(void *arg)
 
 void transmitByteTask(void *arg)
 {
+    printf("0 ok\n");
+
     byte byteArr[BYTE_ARRAY_SIZE];
     byteArr[0] = 0xAA;
     byteArr[BYTE_ARRAY_SIZE - 1] = 0xBB;
     MessageStruct joystick;
     BluetoothSerial SerialBT;
-    SerialBT.begin("ESP32_Joystick");
+    printf("1 ok\n");
+    SerialBT.begin("ESP32_Joystick", false);
+    printf("2 ok\n");
+    // SerialBT.end
     uint8_t mac[6];
     SerialBT.getBtAddress(mac);
     for (int8 i = 0; i < 6; i++)
     {
+        printf("3 %d ok\n", i);
+
         xQueueSend(qSerialCommands, mac + i, 1000);
     }
     bool err = SerialBT.connected(10);
+    printf("4 ok\n");
+
     while (err)
     {
+        printf("5 ok\n");
+
         vTaskDelay(100);
         logMsg(__ASSERT_FUNC, "Bluetooth_Connection", err = SerialBT.connected(10));
     }
@@ -139,24 +151,62 @@ void transmitByteTask(void *arg)
 }
 void serialCommandsTask(void *arg)
 {
+    int8 loop = 1;
     int8 comm[10];
     while (1)
     {
         if (Serial.available())
         {
             comm[0] = Serial.read();
+            printf("Got command: %c\n", comm[0]);
             switch (comm[0])
             {
             case '1':
             {
-                int8 mac[6];
-                for (int8 i = 0; i < 6; i++)
-                {
-                    xQueueReceive(qSerialCommands, mac + i, 1000);
-                }
+                BluetoothSerial SerialBT;
+                printf("1 ok\n");
+                SerialBT.begin("ESP32_Joystick", false);
+                printf("2 ok\n");
+                // SerialBT.end
+                uint8_t mac[6];
+                SerialBT.getBtAddress(mac);
+                // for (int8 i = 0; i < 6; i++)
+                // {
+                //     xQueueReceive(qSerialCommands, mac + i, 1000);
+                // }
                 Serial.printf("BT MAC: %d:%d:%d:%d:%d:%d\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+                SerialBT.end();
             }
             break;
+            case 't':
+                while (loop)
+                {
+                    if (Serial.available())
+                    {
+
+                        comm[1] = Serial.read();
+                        printf("Got command: %c\n", comm[1]);
+                        switch (comm[1])
+                        {
+                        case 'a':
+                            loop = 0;
+                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 1, NULL);
+                            xTaskCreate(transmitByteTask, "Bluetooth Transmit Task", 0x8000, NULL, 1, NULL);
+                            break;
+                        case '1':
+                            loop = 0;
+                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 1, NULL);
+                            break;
+                        case '2':
+                            loop = 0;
+                            xTaskCreate(transmitByteTask, "Bluetooth Transmit Task", 0x8000, NULL, 1, NULL);
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                    vTaskDelay(1);
+                }
 
             default:
                 break;
@@ -164,3 +214,12 @@ void serialCommandsTask(void *arg)
         }
     }
 }
+// void taskManagerTask(void* arg)
+// {
+//     int8 comm[10];
+//     while (1)
+//     {
+//         if (xQueueReceive(qTaskManager))
+//     }
+
+// }

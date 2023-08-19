@@ -35,8 +35,10 @@
 
 extern QueueHandle_t qUART;
 extern QueueHandle_t qSerialCommands;
+// extern QueueHandle_t qTaskManager;
+
 extern std::string intToBinaryString(int number);
 
-extern const char *numToBin(uint16_t num);
+extern String numToBin(uint16_t num);
 
 #endif
