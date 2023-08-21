@@ -37,14 +37,14 @@ extern void readButtons(bool arr[MAX_DIG_COUNT], bool digPins[MAX_DIG_COUNT]);
 /**
  * @brief Constructs the message to be transmitted through bluetooth
  * @note Encapsulated in function to serve modularity. Change if needed.
- * @param joystick Axes and buttons values are stored in this MessageStruct variable
+ * @param message Axes and buttons values are stored in this MessageStruct variable
  * @param arr The message buffer. An array of bytes for ease of transfer with HC-05
  * @retval does not return. the values are changed in the array.
  */
-extern void constructByteArray(MessageStruct *joystick, byte arr[BYTE_ARRAY_SIZE]);
+extern void constructByteArray(MessageStruct *message, byte arr[BYTE_ARRAY_SIZE]);
 
 extern void adcReadTask(void *arg);
-extern void transmitByteTask(void *arg);
+extern void btTask(void *arg);
 extern void serialCommandsTask(void *arg);
 
 #endif

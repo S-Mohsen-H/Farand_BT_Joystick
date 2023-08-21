@@ -1,35 +1,45 @@
 // #include "main.h"
-// #include "General.h"
+#include "General.h"
 // #include "Logging.h"
-// #include "Tasks.h"
+#include "Tasks.h"
 #include "Arduino.h"
 #include "BluetoothSerial.h"
 // BluetoothSerial SerialBT;
 void setup()
 {
+    
     Serial.begin(115200);
-    // qUART = xQueueCreate(10, sizeof(MessageStruct));
-    // qSerialCommands = xQueueCreate(50, sizeof(uint8_t));
+    qUART = xQueueCreate(10, sizeof(MessageStruct));
+    qSerialCommands = xQueueCreate(50, sizeof(uint8_t));
     // qTaskManager = xQueueCreate(10, sizeof(uint8_t));
 
-    // xTaskCreate(serialCommandsTask, "Serial Commands Task", 0x2000, NULL, 1, NULL);
-    BluetoothSerial SerialBT;
-    vTaskDelay(2000);
-    printf("1 ok\n");
-    SerialBT.begin("ESP32_Joystick", false);
-    printf("2 ok\n");
-    // SerialBT.end
-    uint8_t mac[6];
-    SerialBT.getBtAddress(mac);
-    // for (int8 i = 0; i < 6; i++)
-    // {
-    //     xQueueReceive(qSerialCommands, mac + i, 1000);
-    // }
-    Serial.printf("BT MAC: %d:%d:%d:%d:%d:%d\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    xTaskCreate(serialCommandsTask, "Serial Commands Task", 0x2000, NULL, 1, NULL);
+
+    // BluetoothSerial SerialBT;
+    // vTaskDelay(2000);
+    // printf("1 ok\n");
+    // SerialBT.begin("ESP32_Joystick", false);
+    // printf("2 ok\n");
+    // // SerialBT.end
+    // uint8_t mac[6];
+    // SerialBT.getBtAddress(mac);
+    // // for (int8 i = 0; i < 6; i++)
+    // // {
+    // //     xQueueReceive(qSerialCommands, mac + i, 1000);
+    // // }
+    // Serial.printf("BT MAC: %x:%x:%x:%x:%x:%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    // vTaskDelay(1000);
     // SerialBT.end();
 }
 void loop()
+
 {
+    if (uart_debug_mode)
+    {
+        static uint8_t i = 0;
+        printf("%d ok\n", i++);
+    }
+
     // int a = 0;
     // printf("connecting");
     // while (SerialBT.connected())

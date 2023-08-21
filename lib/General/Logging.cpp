@@ -4,27 +4,29 @@
 bool logMsg(const char *funcName, const char *msg, bool isOK)
 {
     if (uart_debug_mode)
-        printf("[%s]:%s-%s\n", funcName, msg, isOK ? "OK" : "Failure");
+        printf("[%s]:%s-%s(%d)\n", funcName, msg, isOK ? "OK" : "Failure", isOK);
     return isOK;
 }
 
 bool logMsg(const char *funcName, int msg, bool isOK)
 {
     if (uart_debug_mode)
-        printf("[%s]:%d\n", funcName, msg);
+        printf("[%s]:%d-%s(%d)\n", funcName, msg, isOK ? "OK" : "Failure", isOK);
+
     return isOK;
 }
 
 bool logMsg(const char *funcName, const char *msg, bool isOK, uint8_t index)
 {
     if (uart_debug_mode)
-        printf("[%s][%d]:%s\n", funcName, index, msg);
+        printf("[%s][%d]:%s-%s(%d)\n", funcName, index, msg, isOK ? "OK" : "Failure", isOK);
+
     return isOK;
 }
 
 bool logMsg(const char *funcName, int msg, bool isOK, uint8_t index)
 {
     if (uart_debug_mode)
-        printf("[%s][%d]:%d\n", funcName, index, msg);
+        printf("[%s][%d]:%d-%s(%d)\n", funcName, index, msg, isOK ? "OK" : "Failure", isOK);
     return isOK;
 }

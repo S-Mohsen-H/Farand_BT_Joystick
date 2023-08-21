@@ -7,7 +7,7 @@ std::string intToBinaryString(int number)
 }
 String numToBin(uint16_t num)
 {
-    String str;
+    String str = "";
     for (int i = 15; i >= 0; i--)
     {
         str += ((num >> i) & 1) ? '1' : '0';
