@@ -38,12 +38,16 @@
 #define ACTION_MODE 0
 #define COMMAND_MODE_SERIAL 1
 #define COMMAND_MODE_PACKET 2
+#define COMMAND_PACKET_SIZE 2
+
+#define BT_TRANSMIT_RATE_MS 100
 /////////////////////////////** @note TYPEDEFS *///////////////////////
 
 typedef struct
 {
     bool isConnected;
-    bool commandMode;
+    bool mode;
+    uint16_t transmitRate;
 } Joystick_TypeDef;
 
 /////////////////////////////** @note QUEUES *///////////////////////

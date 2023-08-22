@@ -47,6 +47,7 @@ void constructByteArray(MessageStruct *message, byte arr[BYTE_ARRAY_SIZE])
         arr[i * 2 + 2] = message->adc[i] & 0xFF;
         if (uart_debug_mode)
             logMsg(__ASSERT_FUNC, numToBin(arr[i * 2 + 1]).c_str(), pdPASS, i * 2 + 1);
+        printf("ADC %d:%d\n", i, message->adc[i]);
     }
 #ifdef USING_SINGLE_BYTE_FOR_BUTTONS
 
@@ -56,6 +57,7 @@ void constructByteArray(MessageStruct *message, byte arr[BYTE_ARRAY_SIZE])
     for (int8 i = 0; i < DIG_COUNT; i++) // Single byte for multiple buttons layout
     {
         arr[MAX_ADC_COUNT + 1] |= (message->button[i] << i);
+        printf("Button %d:%d\n", i, message->button[i]);
     }
 
 #else
@@ -76,7 +78,7 @@ void adcReadTask(void *arg)
     {
         readADC(message.adc, adcPins);
         readButtons(message.button, digPins);
-        err = xQueueSend(qUART, &message, 10);
+        err = xQueueSend(qUART, &message, Joystick.transmitRate);
         logMsg(__ASSERT_FUNC, "QueueSend", err);
         if (err)
         {
@@ -84,14 +86,15 @@ void adcReadTask(void *arg)
         else
         {
         }
-        vTaskDelay(10);
+        vTaskDelay(Joystick.transmitRate);
     }
 }
 
 void btTask(void *arg)
 {
     // printf("0 ok\n");
-    Joystick.commandMode = COMMAND_MODE_SERIAL;
+    Joystick.mode = COMMAND_MODE_SERIAL;
+    Joystick.transmitRate = BT_TRANSMIT_RATE_MS;
     uint8_t comm[0x100];
     byte byteArr[BYTE_ARRAY_SIZE];
     byteArr[0] = 0xAA;
@@ -111,7 +114,13 @@ void btTask(void *arg)
         xQueueSend(qSerialCommands, mac + i, 1000);
     }
     uint32_t now = millis();
-    Joystick.isConnected = SerialBT.connected(portMAX_DELAY);
+    while (1)
+    {
+        Joystick.isConnected = SerialBT.connected(portMAX_DELAY);
+        vTaskDelay(1);
+        if (Joystick.isConnected)
+            break;
+    }
     logMsg(__ASSERT_FUNC, "Bluetooth_Connection", Joystick.isConnected);
     printf("Took %d seconds\n", (millis() - now) / 1000);
     // printf("4 ok\n");
@@ -140,24 +149,108 @@ void btTask(void *arg)
 
     while (1)
     {
-        if (SerialBT.available())
+        while (Joystick.mode)
         {
-            comm[0] = SerialBT.read();
-            switch (comm[0])
+            if (SerialBT.available())
             {
-            case '1':
-                printf("%d",SerialBT.getBtAddress)
-                break;
-            
-            default:
-                break;
+                comm[0] = SerialBT.read();
+                SerialBT.printf("got command: %c\n", comm[0]);
+                switch (comm[0])
+                {
+                case '1':
+                    Joystick.mode = ACTION_MODE;
+                    logMsgBT(&SerialBT, __ASSERT_FUNC, "Entering action mode", 1);
+                    break;
+                case '2':
+                {
+                    bool f = 1;
+                    SerialBT.printf("Enter transmit rate:\n");
+                    while (f)
+                    {
+                        if (SerialBT.available())
+                        {
+                            Joystick.transmitRate = SerialBT.parseInt();
+                            f = 0;
+                        }
+                        else
+                            vTaskDelay(1);
+                    }
+                    break;
+                }
+                case '3':
+                {
+                    // bool f = 1;
+                    uint8_t buf[COMMAND_PACKET_SIZE];
+                    SerialBT.printf("Send commad packet:\n");
+                    if (SerialBT.available())
+                    {
+                        SerialBT.readBytes(buf, COMMAND_PACKET_SIZE);
+                        if (buf[0] == 0xcc)
+                        {
+                            switch (buf[1])
+                            {
+                            case 0:
+                                Joystick.transmitRate = 1;
+                                break;
+                            case 1:
+                                Joystick.transmitRate = 2;
+                                break;
+                            case 2:
+                                Joystick.transmitRate = 5;
+                                break;
+                            case 3:
+                                Joystick.transmitRate = 10;
+                                break;
+                            case 4:
+                                Joystick.transmitRate = 20;
+                                break;
+                            case 5:
+                                Joystick.transmitRate = 50;
+                                break;
+                            case 6:
+                                Joystick.transmitRate = 100;
+                                break;
+                            case 7:
+                                Joystick.transmitRate = 200;
+                                break;
+                            case 8:
+                                Joystick.transmitRate = 500;
+                                break;
+                            case 9:
+                                Joystick.transmitRate = 1000;
+                                break;
+                            case 10:
+                                Joystick.transmitRate = 2000;
+                                break;
+                            case 11:
+                                Joystick.transmitRate = 5000;
+                                break;
+                            case 12:
+                                Joystick.transmitRate = 10000;
+                                break;
+
+                            default:
+                                break;
+                            }
+                        }
+                    }
+                    else
+                        vTaskDelay(1);
+                    break;
+                }
+                default:
+                    break;
+                }
             }
+            vTaskDelay(10);
         }
-        err = xQueueReceive(qUART, &message, 10);
+
+        err = xQueueReceive(qUART, &message, Joystick.transmitRate);
         logMsg(__ASSERT_FUNC, "QueueRead", err);
 
         if (err)
         {
+
             constructByteArray(&message, byteArr);
             if (SerialBT.connected(10))
             {
@@ -168,7 +261,7 @@ void btTask(void *arg)
         {
         }
 
-        vTaskDelay(10);
+        vTaskDelay(Joystick.transmitRate);
     }
 }
 void serialCommandsTask(void *arg)
@@ -177,6 +270,13 @@ void serialCommandsTask(void *arg)
     int8 comm[10];
     while (1)
     {
+        vTaskDelay(1);
+        if (uxQueueMessagesWaiting(qUART) == 10)
+        {
+            vQueueDelete(qUART);
+            qUART = xQueueCreate(10, sizeof(MessageStruct));
+            logMsg(__ASSERT_FUNC, "qUART recreated", 1);
+        }
         if (Serial.available())
         {
             comm[0] = Serial.read();
@@ -200,7 +300,9 @@ void serialCommandsTask(void *arg)
                 // SerialBT.end();
                 break;
             }
-
+            case '2':
+                logMsg(__ASSERT_FUNC, "BT connection status:", Joystick.isConnected);
+                break;
             case 't':
                 while (loop)
                 {
@@ -213,16 +315,16 @@ void serialCommandsTask(void *arg)
                         {
                         case 'a':
                             loop = 0;
-                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 1, NULL);
-                            xTaskCreate(btTask, "Bluetooth Transmit Task", 0x2000, NULL, 1, NULL);
+                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 20, NULL);
+                            xTaskCreate(btTask, "Bluetooth Transmit Task", 0x2000, NULL, 20, NULL);
                             break;
                         case '1':
                             loop = 0;
-                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 1, NULL);
+                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 20, NULL);
                             break;
                         case '2':
                             loop = 0;
-                            xTaskCreate(btTask, "Bluetooth Transmit Task", 0x2000, NULL, 1, NULL);
+                            xTaskCreate(btTask, "Bluetooth Transmit Task", 0x2000, NULL, 20, NULL);
                             break;
                         default:
                             break;
