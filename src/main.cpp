@@ -108,7 +108,7 @@
 #define ADC_PIN_2 39
 #define ADC_PIN_3 34
 
-#define ADC_COUNT 2
+#define ADC_COUNT 3
 #define MAX_ADC_COUNT 3
 
 #define DIG_PIN_1 25
@@ -117,20 +117,65 @@
 
 #define DIG_COUNT 1
 #define MAX_DIG_COUNT 3
-#define BYTE_ARRAY_SIZE (ADC_COUNT * 2 + DIG_COUNT + 2)
+#define BYTE_ARRAY_SIZE (ADC_COUNT * 2 + 1 + 2)
 float alpha = 0.2;
 int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
-bool digPins[MAX_DIG_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
+int8 digPins[MAX_DIG_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
 bool b;
 void setup()
 {
     Serial.begin(115200);
+    for (int i = 0; i < DIG_COUNT; i++)
+    {
+        printf("1:%d\n", i);
+        // gpio_set_direction(digPins[i],inputonly);
+        pinMode(digPins[i], INPUT);
+        printf("2:%d\n", i);
+    }
 }
 void loop()
 {
     int adc[ADC_COUNT];
     int temp = 0;
+    int foop = 0;
     int dig[DIG_COUNT];
+    static int prev[ADC_COUNT];
+    // foop = Serial.available();
+    if (Serial.available())
+    {
+        printf("enter alpha\n");
+
+        foop = Serial.read();
+        switch (foop)
+        {
+        case '1':
+            alpha = 0.99;
+            break;
+        case '2':
+            alpha = 0.95;
+            break;
+        case '3':
+            alpha = 0.9;
+            break;
+        case '4':
+            alpha = 0.7;
+            break;
+        case '5':
+            alpha = 0.5;
+            break;
+        case '6':
+            alpha = 0.3;
+            break;
+        case '7':
+            alpha = 0.2;
+            break;
+        case '8':
+            alpha = 0.1;
+            break;
+        default:
+            break;
+        }
+    }
 
     for (int i = 0; i < ADC_COUNT; i++)
     {
@@ -139,9 +184,9 @@ void loop()
         {
             temp += analogRead(adcPins[i]);
         }
-        adc[i] =  temp / 50;
-        
-        printf("%f  -", ((float)(adc[i]) / 4095) * 3.3);
+        adc[i] = (alpha * prev[i]) + ((1 - alpha) * (temp / 50));
+        prev[i] = adc[i];
+        printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
         // printf("%d  -", adc[i]);
     }
 
@@ -152,6 +197,6 @@ void loop()
     }
     printf("\n");
     digitalWrite(26, b);
-    b = b^0;
+    b = b ^ 0;
     vTaskDelay(100);
 }
