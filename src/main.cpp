@@ -96,7 +96,8 @@
 // // }
 
 #include "Arduino.h"
-
+#include "BluetoothSerial.h"
+BluetoothSerial SerialBT;
 #ifndef int8
 #define int8 uint8_t
 #endif
@@ -124,6 +125,7 @@ int8 digPins[MAX_DIG_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
 bool b;
 void setup()
 {
+    SerialBT.begin("ESP32_Joystick");
     Serial.begin(115200);
     for (int i = 0; i < DIG_COUNT; i++)
     {
@@ -187,6 +189,8 @@ void loop()
         adc[i] = (alpha * prev[i]) + ((1 - alpha) * (temp / 50));
         prev[i] = adc[i];
         printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
+        SerialBT.printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
+
         // printf("%d  -", adc[i]);
     }
 
@@ -194,6 +198,7 @@ void loop()
     {
         dig[i] = digitalRead(digPins[i]);
         printf("%d  -", dig[i]);
+        SerialBT.printf("%d  -", dig[i]);
     }
     printf("\n");
     digitalWrite(26, b);
