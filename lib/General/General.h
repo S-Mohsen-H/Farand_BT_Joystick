@@ -23,7 +23,7 @@
 #define ADC_PIN_2 39
 #define ADC_PIN_3 34
 
-#define ADC_COUNT 2
+#define ADC_COUNT 3
 #define MAX_ADC_COUNT 3
 
 #define DIG_PIN_1 25
@@ -33,7 +33,8 @@
 #define DIG_COUNT 1
 #define MAX_DIG_COUNT 3
 
-#define BYTE_ARRAY_SIZE (ADC_COUNT * 2 + DIG_COUNT + 2)
+// #define BYTE_ARRAY_SIZE (ADC_COUNT * 1.5 + 1 + 2)
+#define BYTE_ARRAY_SIZE 8
 
 #define ACTION_MODE 0
 #define COMMAND_MODE_SERIAL 1
@@ -41,6 +42,9 @@
 #define COMMAND_PACKET_SIZE 2
 
 #define BT_TRANSMIT_RATE_MS 100
+
+#define USING_MULTI_SAMPLING
+#define SAMPLE_COUNT 50
 /////////////////////////////** @note TYPEDEFS *///////////////////////
 
 typedef struct

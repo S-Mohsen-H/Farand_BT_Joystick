@@ -19,12 +19,26 @@ void readButtons(bool arr[MAX_DIG_COUNT], bool digPins[MAX_DIG_COUNT])
 
 void readADC(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT])
 {
-
+    float alpha = 0.8;
+    int16 temp;
+    static int16 prev[3];
+#ifndef USING_MULTI_SAMPLING
     for (int8 i = 0; i < ADC_COUNT; i++)
         arr[i] = analogRead(adcPins[i]);
-
-    // for (int8 i = 0; i < ADC_COUNT; i++)
-    //     message.adc[i] = analogRead(adcPins[i]);
+#else
+    for (int i = 0; i < ADC_COUNT; i++)
+    {
+        temp = 0;
+        for (int j = 0; j < SAMPLE_COUNT; j++)
+        {
+            temp += analogRead(adcPins[i]);
+        }
+        arr[i] = ((1 - alpha) * prev[i]) + (alpha * (temp / SAMPLE_COUNT));
+        prev[i] = arr[i];
+        // printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
+        // SerialBT.printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
+    }
+#endif
 }
 
 void constructByteArray(MessageStruct *message, byte arr[BYTE_ARRAY_SIZE])
