@@ -12,7 +12,7 @@
 typedef struct
 {
     uint16_t adc[MAX_ADC_COUNT];
-    bool button[MAX_DIG_COUNT];
+    bool button[MAX_BUTTON_COUNT];
 
 } MessageStruct;
 
@@ -23,7 +23,7 @@ typedef struct
  * @param adcPins array of adc pin numbers.
  * @retval does not return. the values are changed in the array.
  */
-extern void readADC(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT]);
+extern void readAxes(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT], float alpha);
 
 /**
  * @brief Reads values from joystick buttons.
@@ -32,7 +32,7 @@ extern void readADC(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT]);
  * @param digPins array of digital pin numbers.
  * @retval does not return. the values are changed in the array.
  */
-extern void readButtons(bool arr[MAX_DIG_COUNT], bool digPins[MAX_DIG_COUNT]);
+extern void readButtons(bool arr[MAX_BUTTON_COUNT], int8 digPins[MAX_BUTTON_COUNT]);
 
 /**
  * @brief Constructs the message to be transmitted through bluetooth
@@ -41,7 +41,7 @@ extern void readButtons(bool arr[MAX_DIG_COUNT], bool digPins[MAX_DIG_COUNT]);
  * @param arr The message buffer. An array of bytes for ease of transfer with HC-05
  * @retval does not return. the values are changed in the array.
  */
-extern void constructByteArray(MessageStruct *message, byte arr[BYTE_ARRAY_SIZE]);
+extern void constructByteArray(MessageStruct *message, byte *arr);
 
 extern void adcReadTask(void *arg);
 extern void btTask(void *arg);

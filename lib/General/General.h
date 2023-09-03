@@ -10,7 +10,7 @@
 
 /////////////////////////////** @note DEFINE MACROS *///////////////////////
 
-#define uart_debug_mode 1
+#define uart_debug_mode 0
 
 #ifndef int8
 #define int8 uint8_t
@@ -30,8 +30,8 @@
 #define DIG_PIN_2 26
 #define DIG_PIN_3 27
 
-#define DIG_COUNT 1
-#define MAX_DIG_COUNT 3
+#define BUTTON_COUNT 1
+#define MAX_BUTTON_COUNT 3
 
 // #define BYTE_ARRAY_SIZE (ADC_COUNT * 1.5 + 1 + 2)
 #define BYTE_ARRAY_SIZE 8
@@ -45,6 +45,7 @@
 
 #define USING_MULTI_SAMPLING
 #define SAMPLE_COUNT 50
+#define INITIAL_SAMPLING_COEFFICIENT 0.8
 /////////////////////////////** @note TYPEDEFS *///////////////////////
 
 typedef struct
@@ -58,7 +59,9 @@ typedef struct
 
 extern QueueHandle_t qUART;
 extern QueueHandle_t qSerialCommands;
-extern QueueHandle_t qTaskManager;
+// extern QueueHandle_t qTaskManager;
+extern QueueHandle_t qADC;
+
 
 /////////////////////////////** @note VARIABLES *///////////////////////
 

@@ -50,4 +50,22 @@ extern bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, int msg, b
  * @note "[%funcName]:%msg-%isOK(%isOK)\n", fu
  */
 extern bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, const char *msg, bool isOK);
+
+
+// ///////////////////////////////////////////////////////////////
+////////////// @note String
+// //////////////////////////////////////////////////////////////
+extern bool logMsg(const char *funcName, String *msg, bool isOK);
+
+extern bool logMsg(const char *funcName, String *msg, bool isOK, uint8_t index);
+
+extern bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, String *msg, bool isOK);
+
+extern bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, String *msg, bool isOK, uint8_t index);
+
+
+
+
+
+
 #endif

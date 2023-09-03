@@ -11,6 +11,7 @@ void setup()
     Serial.begin(115200);
     qUART = xQueueCreate(10, sizeof(MessageStruct));
     qSerialCommands = xQueueCreate(50, sizeof(uint8_t));
+    qADC = xQueueCreate(5, sizeof(float));
     // qTaskManager = xQueueCreate(10, sizeof(uint8_t));
 
     xTaskCreate(serialCommandsTask, "Serial Commands Task", 0x2000, NULL, 1, NULL);
@@ -34,7 +35,7 @@ void setup()
 void loop()
 
 {
-    if (uart_debug_mode)
+    if (1)
     {
         static uint8_t i = 0;
         printf("%d ok\n", i++);
@@ -95,97 +96,135 @@ void loop()
 //   delay(20);
 // }
 
-#define LED 23
-int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
-int8 digPins[MAX_DIG_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
-bool b;
+// #include "Arduino.h"
+// #include "BluetoothSerial.h"
+// #define uart_debug_mode 1
 
+// #ifndef int8
+// #define int8 uint8_t
+// #endif
+// #ifndef int16
+// #define int16 uint16_t
+// #endif
 
+// #define ADC_PIN_1 36
+// #define ADC_PIN_2 39
+// #define ADC_PIN_3 34
 
-void setup()
-{
-    SerialBT.begin("ESP32_Joystick");
-    Serial.begin(115200);
-    
-    for (int i = 0; i < DIG_COUNT; i++)
-    {
-        printf("1:%d\n", i);
-        // gpio_set_direction(digPins[i],inputonly);
-        pinMode(digPins[i], INPUT);
-        printf("2:%d\n", i);
-    }
-    pinMode(LED,OUTPUT);
-    digitalWrite(LED,1);
-    vTaskDelay(100);
-    digitalWrite(LED,0);
-}
-void loop()
-{
-    int adc[ADC_COUNT];
-    int temp = 0;
-    int foop = 0;
-    int dig[DIG_COUNT];
-    static int prev[ADC_COUNT];
-    // foop = Serial.available();
-    if (Serial.available())
-    {
-        printf("enter alpha\n");
+// #define ADC_COUNT 3
+// #define MAX_ADC_COUNT 3
 
-        foop = Serial.read();
-        switch (foop)
-        {
-        case '1':
-            for (int i = 0; i < 20; i++)
-                Serial.println((SerialBT.connected()) ? " BLUETOOTH CONNECTED" : "NOT CONNECTED");
-            break;
-        case '2':
-            alpha = 0.95;
-            break;
-        case '3':
-            alpha = 0.9;
-            break;
-        case '4':
-            alpha = 0.7;
-            break;
-        case '5':
-            alpha = 0.5;
-            break;
-        case '6':
-            alpha = 0.3;
-            break;
-        case '7':
-            alpha = 0.2;
-            break;
-        case '8':
-            alpha = 0.1;
-        default:
-            break;
-        }
-    }
+// #define DIG_PIN_1 25
+// #define DIG_PIN_2 26
+// #define DIG_PIN_3 27
 
-    for (int i = 0; i < ADC_COUNT; i++)
-    {
-        temp = 0;
-        for (int j = 0; j < 50; j++)
-        {
-            temp += analogRead(adcPins[i]);
-        }
-        adc[i] = (alpha * prev[i]) + ((1 - alpha) * (temp / 50));
-        prev[i] = adc[i];
-        printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
-        SerialBT.printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
+// #define BUTTON_COUNT 1
+// #define MAX_BUTTON_COUNT 3
 
-        // printf("%d  -", adc[i]);
-    }
+// // #define BYTE_ARRAY_SIZE (ADC_COUNT * 1.5 + 1 + 2)
+// #define BYTE_ARRAY_SIZE 8
 
-    for (int i = 0; i < DIG_COUNT; i++)
-    {
-        dig[i] = digitalRead(digPins[i]);
-        printf("%d  -", dig[i]);
-        SerialBT.printf("%d  -", dig[i]);
-    }
-    printf("\n");
-    digitalWrite(26, b);
-    b = b ^ 0;
-    vTaskDelay(100);
-}
+// #define ACTION_MODE 0
+// #define COMMAND_MODE_SERIAL 1
+// #define COMMAND_MODE_PACKET 2
+// #define COMMAND_PACKET_SIZE 2
+
+// #define BT_TRANSMIT_RATE_MS 100
+
+// #define USING_MULTI_SAMPLING
+// #define SAMPLE_COUNT 50
+// #define INITIAL_SAMPLING_COEFFICIENT 0.8
+// #define LED 23
+// int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
+// int8 digPins[MAX_BUTTON_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
+// float alpha;
+// bool b;
+// BluetoothSerial SerialBT;
+
+// void setup()
+// {
+//     SerialBT.begin("ESP32_Joystick");
+//     Serial.begin(115200);
+
+//     for (int i = 0; i < BUTTON_COUNT; i++)
+//     {
+//         printf("1:%d\n", i);
+//         // gpio_set_direction(digPins[i],inputonly);
+//         pinMode(digPins[i], INPUT);
+//         printf("2:%d\n", i);
+//     }
+//     pinMode(LED, OUTPUT);
+//     digitalWrite(LED, 1);
+//     vTaskDelay(100);
+//     digitalWrite(LED, 0);
+// }
+// void loop()
+// {
+//     int adc[ADC_COUNT];
+//     int temp = 0;
+//     int foop = 0;
+//     int dig[BUTTON_COUNT];
+//     static int prev[ADC_COUNT];
+//     // foop = Serial.available();
+//     if (Serial.available())
+//     {
+//         printf("enter alpha\n");
+
+//         foop = Serial.read();
+//         switch (foop)
+//         {
+//         case '1':
+//             for (int i = 0; i < 20; i++)
+//                 Serial.println((SerialBT.connected()) ? " BLUETOOTH CONNECTED" : "NOT CONNECTED");
+//             break;
+//         case '2':
+//             alpha = 0.95;
+//             break;
+//         case '3':
+//             alpha = 0.9;
+//             break;
+//         case '4':
+//             alpha = 0.7;
+//             break;
+//         case '5':
+//             alpha = 0.5;
+//             break;
+//         case '6':
+//             alpha = 0.3;
+//             break;
+//         case '7':
+//             alpha = 0.2;
+//             break;
+//         case '8':
+//             alpha = 0.1;
+//         default:
+//             break;
+//         }
+//     }
+
+//     for (int i = 0; i < BUTTON_COUNT; i++)
+//     {
+//         dig[i] = digitalRead(digPins[i]);
+//         printf("%d  -", dig[i]);
+//         SerialBT.printf("%d  -", dig[i]);
+//     }
+//     printf("\n");
+//     digitalWrite(26, b);
+//     b = b ^ 0;
+//     vTaskDelay(100);
+// }
+
+// #include "Arduino.h"
+// void setup()
+// {
+//     Serial.begin(115200);
+// }
+// void loop()
+// {
+//     for (int i = 0; i < 100; i++)
+//     {
+//         Serial.printf("%d: ", i);
+//         Serial.println(i % 2);
+//         vTaskDelay(100);
+//     }
+// }
