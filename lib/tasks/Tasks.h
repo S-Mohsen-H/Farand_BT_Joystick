@@ -47,4 +47,11 @@ extern void adcReadTask(void *arg);
 extern void btTask(void *arg);
 extern void serialCommandsTask(void *arg);
 
+/**
+ * @brief Checks if any elements of the byte array is 0d26 (0x1A)
+ * @param Buf The array to be coded
+ * @param Len Length of the byte array.
+ * @note ARRAY LENGTH MUST BE A MULTIPLE OF 8
+ */
+void Code_0x1A(uint8_t *Buf, uint32_t Len);
 #endif

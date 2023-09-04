@@ -51,21 +51,36 @@ extern bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, int msg, b
  */
 extern bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, const char *msg, bool isOK);
 
-
 // ///////////////////////////////////////////////////////////////
-////////////// @note String
+////////////// @note String*
 // //////////////////////////////////////////////////////////////
 extern bool logMsg(const char *funcName, String *msg, bool isOK);
 
 extern bool logMsg(const char *funcName, String *msg, bool isOK, uint8_t index);
 
-extern bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, String *msg, bool isOK);
+extern bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, String *msg, bool isOK);
 
-extern bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, String *msg, bool isOK, uint8_t index);
+extern bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, String *msg, bool isOK, uint8_t index);
 
+// ///////////////////////////////////////////////////////////////
+////////////// @note StringSumHelper
+// //////////////////////////////////////////////////////////////
+bool logMsg(const char *funcName, StringSumHelper msg, bool isOK);
 
+bool logMsg(const char *funcName, StringSumHelper msg, bool isOK, uint8_t index);
 
+bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, StringSumHelper msg, bool isOK);
 
+bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, StringSumHelper msg, bool isOK, uint8_t index);
 
+// ///////////////////////////////////////////////////////////////
+////////////// @note String
+// //////////////////////////////////////////////////////////////
+bool logMsg(const char *funcName, String msg, bool isOK);
 
+bool logMsg(const char *funcName, String msg, bool isOK, uint8_t index);
+
+bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, String msg, bool isOK);
+
+bool logMsgBT(BluetoothSerial *SerialBT, const char *funcName, String msg, bool isOK, uint8_t index);
 #endif

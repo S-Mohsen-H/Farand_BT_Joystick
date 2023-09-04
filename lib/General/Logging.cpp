@@ -71,6 +71,39 @@ bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, int msg, bool isO
 // ///////////////////////////////////////////////////////////////
 ////////////// @note String
 // //////////////////////////////////////////////////////////////
+bool logMsg(const char *funcName, String msg, bool isOK)
+{
+    // if (uart_debug_mode)
+        printf("[%s]:%s-%s(%d)\n", funcName, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+    return isOK;
+}
+
+bool logMsg(const char *funcName, String msg, bool isOK, uint8_t index)
+{
+    // if (uart_debug_mode)
+        printf("[%s][%d]:%s-%s(%d)\n", funcName, index, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+
+    return isOK;
+}
+
+bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, String msg, bool isOK)
+{
+    // if (uart_debug_mode)
+        SerialBT->printf("[%s]:%s-%s(%d)\n", funcName, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+    return isOK;
+}
+
+
+bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, String msg, bool isOK, uint8_t index)
+{
+    // if (uart_debug_mode)
+        SerialBT->printf("[%s][%d]:%s-%s(%d)\n", funcName, index, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+
+    return isOK;
+}
+// ///////////////////////////////////////////////////////////////
+////////////// @note String*
+// //////////////////////////////////////////////////////////////
 bool logMsg(const char *funcName, String *msg, bool isOK)
 {
     // if (uart_debug_mode)
@@ -101,3 +134,37 @@ bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, String *msg, bool
 
     return isOK;
 }
+// ///////////////////////////////////////////////////////////////
+////////////// @note StringSumHelper
+// //////////////////////////////////////////////////////////////
+bool logMsg(const char *funcName, StringSumHelper msg, bool isOK)
+{
+    // if (uart_debug_mode)
+        printf("[%s]:%s-%s(%d)\n", funcName, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+    return isOK;
+}
+
+bool logMsg(const char *funcName, StringSumHelper msg, bool isOK, uint8_t index)
+{
+    // if (uart_debug_mode)
+        printf("[%s][%d]:%s-%s(%d)\n", funcName, index, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+
+    return isOK;
+}
+
+bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, StringSumHelper msg, bool isOK)
+{
+    // if (uart_debug_mode)
+        SerialBT->printf("[%s]:%s-%s(%d)\n", funcName, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+    return isOK;
+}
+
+
+bool logMsgBT(BluetoothSerial * SerialBT,const char *funcName, StringSumHelper msg, bool isOK, uint8_t index)
+{
+    // if (uart_debug_mode)
+        SerialBT->printf("[%s][%d]:%s-%s(%d)\n", funcName, index, msg.c_str(), isOK ? "OK" : "Failure", isOK);
+
+    return isOK;
+}
+
