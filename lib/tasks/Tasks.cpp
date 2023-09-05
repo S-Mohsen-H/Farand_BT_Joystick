@@ -1,9 +1,8 @@
 #include "Tasks.h"
 // #include "General.h"
-QueueHandle_t qUART;
-QueueHandle_t qSerialCommands;
+QueueHandle_t qTransmitBT;
+QueueHandle_t qTaskManager;
 QueueHandle_t qADC;
-// QueueHandle_t qTaskManager;
 
 Joystick_TypeDef Joystick;
 
@@ -81,7 +80,7 @@ void constructByteArray(MessageStruct *message, byte *arr)
     //     arr[ADC_COUNT+ ADC_COUNT]
     // }
 }
-void adcReadTask(void *arg)
+void readJoystick_task(void *arg)
 {
     int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
     int8 digPins[MAX_BUTTON_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
@@ -92,21 +91,21 @@ void adcReadTask(void *arg)
     // printf("2 ok\n");
     MessageStruct message;
     int err;
-    float alpha = INITIAL_SAMPLING_COEFFICIENT;
+    // float alpha = INITIAL_SAMPLING_COEFFICIENT;
     while (1)
 
     {
-        if (uxQueueMessagesWaiting(qADC) > 0)
-        {
-            xQueueReceive(qADC, &alpha, 0);
-            logMsg(__ASSERT_FUNC, ("Sampling coefficient changed to " + String(alpha)).c_str(), 1);
-        }
+        // if (uxQueueMessagesWaiting(qADC) > 0)
+        // {
+        //     xQueueReceive(qADC, &alpha, 0);
+        //     logMsg(__ASSERT_FUNC, ("Sampling coefficient changed to " + String(alpha)).c_str(), 1);
+        // }
 
-        readAxes(message.adc, adcPins, alpha);
+        readAxes(message.adc, adcPins, Joystick.alpha);
         readButtons(message.button, digPins);
         // printf("3 ok\n");
 
-        err = xQueueSend(qUART, &message, Joystick.transmitRateMS);
+        err = xQueueSend(qTransmitBT, &message, Joystick.transmitRateMS);
         if (uart_debug_mode)
             logMsg(__ASSERT_FUNC, "QueueSend", err);
         if (err)
@@ -119,26 +118,23 @@ void adcReadTask(void *arg)
     }
 }
 
-void btTask(void *arg)
+void transmitBT_task(void *arg)
 {
     // printf("0 ok\n");
     Joystick.mode = COMMAND_MODE_PACKET;
     Joystick.transmitRateMS = BT_INITIAL_TRANSMIT_RATE_MS;
+    Joystick.alpha = INITIAL_SAMPLING_COEFFICIENT;
     uint8_t commBT[COMMAND_PACKET_SIZE];
     uint8_t byteArr[BYTE_ARRAY_SIZE];
-    // byteArr[0] = 0xAA;
     byteArr[BYTE_ARRAY_SIZE - 1] = 0xBB;
     MessageStruct message;
     BluetoothSerial SerialBT;
-    // printf("1 ok\n");
     SerialBT.begin("ESP32_Joystick", false);
-    // printf("2 ok\n");
-    // SerialBT.end
     uint8_t mac[6];
     SerialBT.getBtAddress(mac);
     for (int8 i = 0; i < 6; i++)
     {
-        xQueueSend(qSerialCommands, mac + i, 1000);
+        xQueueSend(qTaskManager, mac + i, 1000);
     }
 
     bool err;
@@ -146,13 +142,17 @@ void btTask(void *arg)
     while (1)
     {
         uint32_t now = millis();
-        while (Joystick.isConnected)
+        if (!Joystick.isConnected)
         {
-            Joystick.isConnected = SerialBT.connected(portMAX_DELAY);
-            vTaskDelay(1);
+            while (!Joystick.isConnected)
+            {
+                Joystick.isConnected = SerialBT.connected(portMAX_DELAY);
+                vTaskDelay(1);
+            }
+            logMsg(__ASSERT_FUNC, "Bluetooth_Connection", Joystick.isConnected);
+            printf("Took %d seconds\n", (millis() - now) / 1000);
         }
-        logMsg(__ASSERT_FUNC, "Bluetooth_Connection", Joystick.isConnected);
-        printf("Took %d seconds\n", (millis() - now) / 1000);
+
         while (Joystick.mode) // command modes
         {
             if (SerialBT.available())
@@ -253,17 +253,21 @@ void btTask(void *arg)
                 break;
                 case COMMAND_MODE_PACKET:
                 {
-                    SerialBT.readBytes(commBT, BYTE_ARRAY_SIZE);
+                    SerialBT.readBytes(commBT, COMMAND_PACKET_SIZE);
                     printf("got command: %x\n", commBT[COMMAND_BYTE_INDEX]);
                     switch (commBT[COMMAND_BYTE_INDEX])
                     {
-                    case 0xA0:
+                    case CMD_START_ACTION_MODE:
                         Joystick.mode = ACTION_MODE;
                         break;
 
-                    case 0xC0:
+                    case CMD_TRANSMIT_RATE:
                         Joystick.transmitRateMS = commBT[COMMAND_BYTE_INDEX + 1] * 10;
                         break;
+                    case CMD_ALPHA:
+                        Joystick.alpha = (float)(commBT[COMMAND_BYTE_INDEX + 1]) / 100.0;
+                        break;
+
                     default:
                         break;
                     }
@@ -276,7 +280,7 @@ void btTask(void *arg)
             vTaskDelay(10);
         }
 
-        err = xQueueReceive(qUART, &message, Joystick.transmitRateMS);
+        err = xQueueReceive(qTransmitBT, &message, Joystick.transmitRateMS);
         if (uart_debug_mode)
             logMsg(__ASSERT_FUNC, "QueueRead", err);
 
@@ -285,6 +289,31 @@ void btTask(void *arg)
             constructByteArray(&message, byteArr);
             if (SerialBT.connected(10))
             {
+                if (SerialBT.available())
+                {
+                    SerialBT.readBytes(commBT, COMMAND_PACKET_SIZE);
+                    printf("got command: %x\n", commBT[COMMAND_BYTE_INDEX]);
+                    switch (commBT[COMMAND_BYTE_INDEX])
+                    {
+                    case CMD_TRANSMIT_RATE:
+                        Joystick.transmitRateMS = commBT[COMMAND_BYTE_INDEX + 1] * 10;
+                        break;
+                    case CMD_ALPHA:
+                        Joystick.alpha = (float)(commBT[COMMAND_BYTE_INDEX + 1]) / 100.0;
+                        break;
+                    case CMD_LED_PIN:
+                        digitalWrite(LED_PIN, commBT[COMMAND_BYTE_INDEX + 1]);
+
+                        break;
+                    case CMD_BUZZER:
+                        /* to be implemented*/
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                SerialBT.write(byteArr, sizeof(byteArr));
+
 #ifdef DEBUG_BT_PRINT_VALUES
                 int16 arr[3];
                 arr[0] = byteArr[3] & 0xFF;
@@ -297,37 +326,37 @@ void btTask(void *arg)
                     printf("%d :%d  __", message.adc[i], arr[i]);
                 printf("\n");
 #endif
-                SerialBT.write(byteArr, sizeof(byteArr));
             }
             else
             {
                 static bool ledStat = 0;
-                digitalWrite(LED, ledStat);
+                digitalWrite(LED_PIN, ledStat);
                 ledStat = !ledStat;
             }
         }
         else
         {
+            logMsg(__ASSERT_FUNC, "No message received", 0);
         }
         vTaskDelay(Joystick.transmitRateMS);
     }
 }
-void serialCommandsTask(void *arg)
+void taskManager_task(void *arg)
 {
     int8 loop = 1;
     int8 comm[10];
-    if (ADC_TASK_ENABLED)
-        xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 20, NULL);
-    if (BT_TASK_ENABLED)
-        xTaskCreate(btTask, "Bluetooth Transmit Task", 0x2000, NULL, 20, NULL);
+    if (ADC_TASK_ENABLED_PIN)
+        xTaskCreate(readJoystick_task, "Analog Read Task", READJOYSTICK_STACK_SIZE, NULL, 20, NULL);
+    if (BT_TASK_ENABLED_PIN)
+        xTaskCreate(transmitBT_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
     while (1)
     {
         vTaskDelay(1);
-        if (uxQueueMessagesWaiting(qUART) == 10)
+        if (uxQueueMessagesWaiting(qTransmitBT) == 10)
         {
-            vQueueDelete(qUART);
-            qUART = xQueueCreate(10, sizeof(MessageStruct));
-            logMsg(__ASSERT_FUNC, "qUART recreated", 1);
+            vQueueDelete(qTransmitBT);
+            qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
+            logMsg(__ASSERT_FUNC, "qTransmitBT recreated", 1);
         }
         if (Serial.available())
         {
@@ -363,7 +392,7 @@ void serialCommandsTask(void *arg)
                 // SerialBT.getBtAddress(mac);
                 for (int8 i = 0; i < 6; i++)
                 {
-                    xQueueReceive(qSerialCommands, mac + i, 1000);
+                    xQueueReceive(qTaskManager, mac + i, 1000);
                 }
                 Serial.printf("BT MAC: %x:%x:%x:%x:%x:%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
                 // SerialBT.end();
@@ -382,18 +411,19 @@ void serialCommandsTask(void *arg)
                         printf("Got command 2: %c\n", comm[1]);
                         switch (comm[1])
                         {
+                        case 'A':
                         case 'a':
                             loop = 0;
-                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 20, NULL);
-                            xTaskCreate(btTask, "Bluetooth Transmit Task", 0x2000, NULL, 20, NULL);
+                            xTaskCreate(readJoystick_task, "Analog Read Task", READJOYSTICK_STACK_SIZE, NULL, 20, NULL);
+                            xTaskCreate(transmitBT_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
                             break;
                         case '1':
                             loop = 0;
-                            xTaskCreate(adcReadTask, "Analog Read Task", 0x800, NULL, 20, NULL);
+                            xTaskCreate(readJoystick_task, "Analog Read Task", READJOYSTICK_STACK_SIZE, NULL, 20, NULL);
                             break;
                         case '2':
                             loop = 0;
-                            xTaskCreate(btTask, "Bluetooth Transmit Task", 0x2000, NULL, 20, NULL);
+                            xTaskCreate(transmitBT_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
                             break;
                         default:
                             break;
@@ -408,15 +438,6 @@ void serialCommandsTask(void *arg)
         }
     }
 }
-// void taskManagerTask(void* arg)
-// {
-//     int8 comm[10];
-//     while (1)
-//     {
-//         if (xQueueReceive(qTaskManager))
-//     }
-
-// }
 
 void Code_0x1A(uint8_t *Buf, uint32_t Len)
 {

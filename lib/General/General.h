@@ -11,7 +11,7 @@
 /////////////////////////////** @note DEFINE MACROS *///////////////////////
 
 
-#define LED 23
+
 
 #ifndef int8
 #define int8 uint8_t
@@ -20,6 +20,14 @@
 #define int16 uint16_t
 #endif
 
+#define TASKMANAGER_STACK_SIZE 0x3000
+#define TRANSMITBT_STACK_SIZE 0x2000
+#define READJOYSTICK_STACK_SIZE 0x1000
+
+#define QUEUE_ADC_SIZE 5
+
+#define LED_PIN 23
+#define BUZZER_PIN 19
 #define ADC_PIN_1 36
 #define ADC_PIN_2 39
 #define ADC_PIN_3 34
@@ -47,6 +55,12 @@
 #define COMMAND_BYTE_INDEX 8
 #define COMMAND_PACKET_SIZE BYTE_ARRAY_SIZE
 
+#define CMD_START_ACTION_MODE 0xA0
+#define CMD_TRANSMIT_RATE 0xC0
+#define CMD_ALPHA 0xC1
+#define CMD_BUZZER 0xC2
+#define CMD_LED_PIN 0xC3
+
 #define BT_INITIAL_TRANSMIT_RATE_MS 100
 
 #define USING_MULTI_SAMPLING
@@ -56,7 +70,7 @@
 
 #define uart_debug_mode 0
 // #define DEBUG_READAXES
-#define DEBUG_BT_PRINT_VALUES
+// #define DEBUG_BT_PRINT_VALUES
 
 /////////////////////////////** @note TYPEDEFS *///////////////////////
 
@@ -65,17 +79,17 @@ typedef struct
     bool isConnected;
     int8 mode;
     uint16_t transmitRateMS;
+    float alpha;
 } Joystick_TypeDef;
 
 /////////////////////////////** @note QUEUES *///////////////////////
 
-extern QueueHandle_t qUART;
-extern QueueHandle_t qSerialCommands;
-// extern QueueHandle_t qTaskManager;
+extern QueueHandle_t qTransmitBT;
+extern QueueHandle_t qTaskManager;
 extern QueueHandle_t qADC;
 
-#define ADC_TASK_ENABLED 1
-#define BT_TASK_ENABLED 1
+#define ADC_TASK_ENABLED_PIN 1
+#define BT_TASK_ENABLED_PIN 1
 
 
 /////////////////////////////** @note VARIABLES *///////////////////////

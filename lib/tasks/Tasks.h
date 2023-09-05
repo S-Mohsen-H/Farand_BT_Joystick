@@ -43,9 +43,9 @@ extern void readButtons(bool arr[MAX_BUTTON_COUNT], int8 digPins[MAX_BUTTON_COUN
  */
 extern void constructByteArray(MessageStruct *message, byte *arr);
 
-extern void adcReadTask(void *arg);
-extern void btTask(void *arg);
-extern void serialCommandsTask(void *arg);
+extern void readJoystick_task(void *arg);
+extern void transmitBT_task(void *arg);
+extern void taskManager_task(void *arg);
 
 /**
  * @brief Checks if any elements of the byte array is 0d26 (0x1A)

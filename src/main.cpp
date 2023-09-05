@@ -7,31 +7,17 @@
 // BluetoothSerial SerialBT;
 void setup()
 {
+    pinMode(BUZZER_PIN, OUTPUT);
+    tone(BUZZER_PIN, 2000,50);
+
 
     Serial.begin(115200);
-    qUART = xQueueCreate(10, sizeof(MessageStruct));
-    qSerialCommands = xQueueCreate(50, sizeof(uint8_t));
-    qADC = xQueueCreate(5, sizeof(float));
-    // qTaskManager = xQueueCreate(10, sizeof(uint8_t));
-    pinMode(LED, OUTPUT);
+    qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
+    qTaskManager = xQueueCreate(50, sizeof(uint8_t));
+    qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
+    pinMode(LED_PIN, OUTPUT);
 
-    xTaskCreate(serialCommandsTask, "Serial Commands Task", 0x1000, NULL, 1, NULL);
-
-    // BluetoothSerial SerialBT;
-    // vTaskDelay(2000);
-    // printf("1 ok\n");
-    // SerialBT.begin("ESP32_Joystick", false);
-    // printf("2 ok\n");
-    // // SerialBT.end
-    // uint8_t mac[6];
-    // SerialBT.getBtAddress(mac);
-    // // for (int8 i = 0; i < 6; i++)
-    // // {
-    // //     xQueueReceive(qSerialCommands, mac + i, 1000);
-    // // }
-    // Serial.printf("BT MAC: %x:%x:%x:%x:%x:%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    // vTaskDelay(1000);
-    // SerialBT.end();
+    xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
 }
 void loop()
 
@@ -41,25 +27,6 @@ void loop()
         static uint8_t i = 0;
         printf("%d ok\n", i++);
     }
-
-    // int a = 0;
-    // printf("connecting");
-    // while (SerialBT.connected())
-    // {
-    //     vTaskDelay(100);
-    //     printf(".");
-    // }
-    // printf("\n");
-    // SerialBT.printf("%d\n", a++);
-    // vTaskDelay(1000);
-    // if (Serial.available())
-    // {
-    //     SerialBT.write(Serial.read());
-    // }
-    // if (SerialBT.available())
-    // {
-    //     Serial.write(SerialBT.read());
-    // }
     vTaskDelay(5000);
 }
 // bool initQT()
@@ -75,7 +42,7 @@ void loop()
 // // #include "Arduino.h"
 // // #include "BluetoothSerial.h"
 
-// // #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+// // #if !defined(CONFIG_BT_ENABLED_PIN) || !defined(CONFIG_BLUEDROID_ENABLED_PIN)
 // // #error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
 // // #endif
 
@@ -135,7 +102,7 @@ void loop()
 // // #define USING_MULTI_SAMPLING
 // // #define SAMPLE_COUNT 50
 // // #define INITIAL_SAMPLING_COEFFICIENT 0.8
-// // #define LED 23
+// // #define LED_PIN 23
 // // int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
 // // int8 digPins[MAX_BUTTON_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
 // // float alpha;
@@ -154,10 +121,10 @@ void loop()
 // //         pinMode(digPins[i], INPUT);
 // //         printf("2:%d\n", i);
 // //     }
-// //     pinMode(LED, OUTPUT);
-// //     digitalWrite(LED, 1);
+// //     pinMode(LED_PIN, OUTPUT);
+// //     digitalWrite(LED_PIN, 1);
 // //     vTaskDelay(100);
-// //     digitalWrite(LED, 0);
+// //     digitalWrite(LED_PIN, 0);
 // // }
 // // void loop()
 // // {
