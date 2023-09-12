@@ -118,7 +118,7 @@ void readJoystick_task(void *arg)
     }
 }
 
-void transmitBT_task(void *arg)
+void bluetoothManager_task(void *arg)
 {
     // printf("0 ok\n");
     Joystick.mode = COMMAND_MODE_PACKET;
@@ -303,11 +303,32 @@ void transmitBT_task(void *arg)
                         break;
                     case CMD_LED_PIN:
                         digitalWrite(LED_PIN, commBT[COMMAND_BYTE_INDEX + 1]);
-
                         break;
-                    case CMD_BUZZER:
-                        /* to be implemented*/
+                    case CMD_ALARM:
+                    {
+                        alarmMessage_typeDef alarmMessage;
+                        alarmMessage.BeepOnOff = 1;
+                        alarmMessage.frequency = 2000;
+                        alarmMessage.buzzerPin = BUZZER_PIN;
+                        alarmMessage.AlarmCount = commBT[COMMAND_BYTE_INDEX + 5];
+                        alarmMessage.Pattern = commBT[COMMAND_BYTE_INDEX + 1];
+                        alarmMessage.Pattern |= commBT[COMMAND_BYTE_INDEX + 2] << 8;
+                        alarmMessage.Pattern |= commBT[COMMAND_BYTE_INDEX + 3] << 16;
+                        alarmMessage.Pattern |= commBT[COMMAND_BYTE_INDEX + 4] << 24;
+                        int8 i;
+                        for (i = 31; i >= 0; i--)
+                        {
+                            if (alarmMessage.Pattern & (1 << i))
+                            {
+                                alarmMessage.TimePeriod = i;
+                                break;
+                            }
+                        }
+                        // Farand_Alarm(alarmMessage.Pattern, alarmMessage.AlarmCount, alarmMessage.TimePeriod, alarmMessage.BeepOnOff, BUZZER_PIN);
+                        addAlarmToQueue(&alarmMessage);
+                        printf("got alarm with pattern %x,period %d, count %\n", alarmMessage.Pattern, alarmMessage.TimePeriod, alarmMessage.AlarmCount);
                         break;
+                    }
                     default:
                         break;
                     }
@@ -348,7 +369,7 @@ void taskManager_task(void *arg)
     if (ADC_TASK_ENABLED_PIN)
         xTaskCreate(readJoystick_task, "Analog Read Task", READJOYSTICK_STACK_SIZE, NULL, 20, NULL);
     if (BT_TASK_ENABLED_PIN)
-        xTaskCreate(transmitBT_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
+        xTaskCreate(bluetoothManager_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
     while (1)
     {
         vTaskDelay(1);
@@ -415,7 +436,7 @@ void taskManager_task(void *arg)
                         case 'a':
                             loop = 0;
                             xTaskCreate(readJoystick_task, "Analog Read Task", READJOYSTICK_STACK_SIZE, NULL, 20, NULL);
-                            xTaskCreate(transmitBT_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
+                            xTaskCreate(bluetoothManager_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
                             break;
                         case '1':
                             loop = 0;
@@ -423,7 +444,7 @@ void taskManager_task(void *arg)
                             break;
                         case '2':
                             loop = 0;
-                            xTaskCreate(transmitBT_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
+                            xTaskCreate(bluetoothManager_task, "Bluetooth Transmit Task", TRANSMITBT_STACK_SIZE, NULL, 20, NULL);
                             break;
                         default:
                             break;

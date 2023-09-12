@@ -3,6 +3,8 @@
 
 #include "General.h"
 #include "BluetoothSerial.h"
+#include "Alarm_FreeRTOS.h"
+
 // #include "main.h"
 
 /** @note Uncomment in case of using multiple bytes for multiple buttons*/
@@ -44,7 +46,7 @@ extern void readButtons(bool arr[MAX_BUTTON_COUNT], int8 digPins[MAX_BUTTON_COUN
 extern void constructByteArray(MessageStruct *message, byte *arr);
 
 extern void readJoystick_task(void *arg);
-extern void transmitBT_task(void *arg);
+extern void bluetoothManager_task(void *arg);
 extern void taskManager_task(void *arg);
 
 /**
