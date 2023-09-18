@@ -17,12 +17,11 @@ void setup()
     Serial.begin(115200);
     qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
     qTaskManager = xQueueCreate(50, sizeof(uint8_t));
-    qAlarmMessage = xQueueCreate(100, sizeof(alarmMessage_typeDef));
     qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
     pinMode(LED_PIN, OUTPUT);
 
     xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
-    xTaskCreate(alarm_task, "Alarm task", 0x800, NULL, 2, NULL);
+    xTaskCreate(alarm_task, "Alarm Task", ALARM_STACK_SIZE, NULL, 19, NULL);
     // xTimerCreate("Alarm timer", 31.25, true, NULL, Farand_Update_Alarm);
 
     // hwAlarmTimer = timerBegin(0, getCpuFrequencyMhz(), true);
@@ -88,7 +87,7 @@ void loop()
 
 // // // // #include "Arduino.h"
 // // // // #include "BluetoothSerial.h"
-// // // // #define uart_debug_mode 1
+// // // // #define UART_DEBUG_MODE 1
 
 // // // // #ifndef int8
 // // // // #define int8 uint8_t

@@ -10,9 +10,6 @@
 
 /////////////////////////////** @note DEFINE MACROS *///////////////////////
 
-
-
-
 #ifndef int8
 #define int8 uint8_t
 #endif
@@ -21,8 +18,9 @@
 #endif
 
 #define TASKMANAGER_STACK_SIZE 0x3000
-#define TRANSMITBT_STACK_SIZE 0x2000
+#define BLUETOOTHMANAGER_STACK_SIZE 0x2000
 #define READJOYSTICK_STACK_SIZE 0x1000
+#define ALARM_STACK_SIZE 0x2000
 
 #define QUEUE_ADC_SIZE 5
 
@@ -47,28 +45,34 @@
 #define BYTE1A 0x1A
 #define BYTE1 0xAA
 
-#define ACTION_MODE 0
-#define COMMAND_ACTION_MODE 0xA0
 
+#define ACTION_MODE 0
 #define COMMAND_MODE_SERIAL 1
 #define COMMAND_MODE_PACKET 2
+#define COMMAND_MODE_AUTO_DETECTION 10
+
 #define COMMAND_BYTE_INDEX 8
 #define COMMAND_PACKET_SIZE BYTE_ARRAY_SIZE
+
+extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
+
 
 #define CMD_START_ACTION_MODE 0xA0
 #define CMD_TRANSMIT_RATE 0xC0
 #define CMD_ALPHA 0xC1
 #define CMD_ALARM 0xC2
-#define CMD_LED_PIN 0xC3
+#define CMD_LED 0xC3
 
 #define BT_INITIAL_TRANSMIT_RATE_MS 100
+#define BT_SSID "ESP32_Joystick"
+#define BT_RESET_TIMEOUT_SEC 100
+#define BT_TIMEOUT_ACTIVE false
 
 #define USING_MULTI_SAMPLING
 #define SAMPLE_COUNT 50
 #define INITIAL_SAMPLING_COEFFICIENT 0.8
 
-
-#define uart_debug_mode 0
+#define UART_DEBUG_MODE 0
 // #define DEBUG_READAXES
 // #define DEBUG_BT_PRINT_VALUES
 
@@ -88,9 +92,8 @@ extern QueueHandle_t qTransmitBT;
 extern QueueHandle_t qTaskManager;
 extern QueueHandle_t qADC;
 
-#define ADC_TASK_ENABLED_PIN 1
-#define BT_TASK_ENABLED_PIN 1
-
+#define ADC_TASK_ENABLED 1
+#define BT_TASK_ENABLED 1
 
 /////////////////////////////** @note VARIABLES *///////////////////////
 

@@ -1,6 +1,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Alarm_FreeRTOS.h"
-
+#include "Logging.h"
 uint32_t Pattern = 0;
 uint32_t alarmCount = 0;
 uint32_t BeepPattern_Shifted = 0;
@@ -12,6 +12,8 @@ uint8_t Message_Queue_Index = 0;
 uint8_t Message_Queue_CurrentIndex = 0;
 uint8_t shiftCount = 0;
 uint8_t alarm_Time = 0;
+
+bool usingTone = 0;
 
 alarmMessage_typeDef alarmMessageQueue[MESSAGE_QUEUE_SIZE];
 QueueHandle_t qAlarmMessage;
@@ -46,27 +48,52 @@ QueueHandle_t qAlarmMessage;
 // }
 void addAlarmToQueue(alarmMessage_typeDef *alarm)
 {
-	xQueueSend(qAlarmMessage, alarm, portMAX_DELAY);
+	for (uint8_t i = 0; i < alarm->AlarmCount; i++)
+		xQueueSend(qAlarmMessage, alarm, portMAX_DELAY);
 }
 void alarm_task(void *arg)
 {
-	alarmMessage_typeDef *alarm;
+	alarmMessage_typeDef alarm;
+	qAlarmMessage = xQueueCreate(100, sizeof(alarmMessage_typeDef));
+	// alarm.Pattern = SHORT_BEEP_X1;
+	// alarm.AlarmCount = 2;
+	// alarm.buzzerPin = 19;
+	// alarm.frequency = 2000;
+	// alarm.BeepOnOff = 1;
+	// alarm.TimePeriod = 32;
+	// xQueueSend(qAlarmMessage, &alarm, 1);
 	while (1)
 	{
-		if (uxQueueMessagesWaiting(qAlarmMessage) > 0)
-			if (xQueueReceive(qAlarmMessage, alarm, 0))
+		if (uxQueueMessagesWaiting(qAlarmMessage) == 100)
+		{
+			vQueueDelete(qAlarmMessage);
+			qAlarmMessage = xQueueCreate(100, sizeof(alarmMessage_typeDef));
+			logMsg(__ASSERT_FUNC, "qTransmitBT recreated", 1);
+		}
+		// if (uxQueueMessagesWaiting(qAlarmMessage) > 0)
+		if (xQueueReceive(qAlarmMessage, &alarm, 1))
+		{
+			printf("got alarm with pattern %x,period %d, count %d\n", alarm.Pattern, alarm.TimePeriod, alarm.AlarmCount);
+			uint32_t patternShifted = alarm.Pattern;
+			for (uint8_t i = 0; i < alarm.TimePeriod; i++)
 			{
-				static uint32_t patternShifted = alarm->Pattern;
-				for (uint8_t i = 0; i < alarm->TimePeriod; i++)
-				{
-					if (patternShifted & 1)
-						tone(alarm->buzzerPin, alarm->frequency);
+				if (alarm.Pattern & (1 << i))
+					if (usingTone)
+						tone(alarm.buzzerPin, alarm.frequency);
 					else
-						noTone(alarm->buzzerPin);
-					patternShifted >> 1;
-				}
-				vTaskDelay(31.25);
+						digitalWrite(alarm.buzzerPin, 1);
+				else if (usingTone)
+					noTone(alarm.buzzerPin);
+				else
+					digitalWrite(alarm.buzzerPin, 0);
+				// patternShifted >> 1;
+				vTaskDelay(31);
 			}
+			if (usingTone)
+				noTone(alarm.buzzerPin);
+			else
+				digitalWrite(alarm.buzzerPin, 0);
+		}
 		vTaskDelay(1);
 	}
 }

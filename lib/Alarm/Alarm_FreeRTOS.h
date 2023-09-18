@@ -6,11 +6,11 @@
 typedef struct
 {
 	uint32_t Pattern;
-	uint32_t AlarmCount;
-	uint8_t BeepOnOff;
-	uint8_t TimePeriod;
-	uint8_t buzzerPin;
-	uint16_t frequency;
+	uint32_t AlarmCount = 1;
+	uint8_t BeepOnOff = 1;
+	uint8_t TimePeriod = 32;
+	uint8_t buzzerPin = 19;
+	uint16_t frequency = 2500;
 
 } alarmMessage_typeDef;
 
@@ -35,6 +35,8 @@ extern hw_timer_t *hwAlarmTimer;
 #define BEEP_ON 0x01
 #define BEEP_OFF 0x00
 #define MESSAGE_QUEUE_SIZE 32
+
+extern bool usingTone;
 
 extern void Farand_Alarm(uint32_t PatternInit, uint8_t NumberInit, uint8_t AlarmTime, uint8_t BeepOnOffInit);
 extern void Farand_Update_Alarm(uint8_t _buzzerPin);

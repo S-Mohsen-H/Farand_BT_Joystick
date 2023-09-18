@@ -1,4 +1,5 @@
 #include "General.h"
+uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE] = {0x00, 0xAA, 0x55, 0x00, 0x00, 0x00, 0x00, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0};
 
 std::string intToBinaryString(int number)
 {
