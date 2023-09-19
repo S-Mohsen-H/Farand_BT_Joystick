@@ -2,16 +2,16 @@
 #include "Alarm_FreeRTOS.h"
 #include "Logging.h"
 uint32_t Pattern = 0;
-uint32_t alarmCount = 0;
-uint32_t BeepPattern_Shifted = 0;
-uint32_t Pattern_Shifted = 0;
-uint8_t BeepOnOff = 0;
-uint8_t Continious = 0;
+// uint32_t alarmCount = 0;
+// uint32_t BeepPattern_Shifted = 0;
+// uint32_t Pattern_Shifted = 0;
+// uint8_t BeepOnOff = 0;
+// uint8_t Continious = 0;
 uint8_t buzzerPin;
-uint8_t Message_Queue_Index = 0;
-uint8_t Message_Queue_CurrentIndex = 0;
-uint8_t shiftCount = 0;
-uint8_t alarm_Time = 0;
+// uint8_t Message_Queue_Index = 0;
+// uint8_t Message_Queue_CurrentIndex = 0;
+// uint8_t shiftCount = 0;
+// uint8_t alarm_Time = 0;
 
 bool usingTone = 0;
 
@@ -73,8 +73,8 @@ void alarm_task(void *arg)
 		// if (uxQueueMessagesWaiting(qAlarmMessage) > 0)
 		if (xQueueReceive(qAlarmMessage, &alarm, 1))
 		{
-			printf("got alarm with pattern %x,period %d, count %d\n", alarm.Pattern, alarm.TimePeriod, alarm.AlarmCount);
-			uint32_t patternShifted = alarm.Pattern;
+			if (ALARM_DEBUG_MODE_UART)
+				printf("got alarm with pattern %x,period %d, count %d\n", alarm.Pattern, alarm.TimePeriod, alarm.AlarmCount);
 			for (uint8_t i = 0; i < alarm.TimePeriod; i++)
 			{
 				if (alarm.Pattern & (1 << i))
@@ -167,20 +167,20 @@ void alarm_task(void *arg)
 // 		}
 // 	}
 // }
-void Farand_Reset_Alarm(void)
-{
-	Pattern = 0;
-	alarmCount = 0;
-	BeepPattern_Shifted = 0;
-	Pattern_Shifted = 0;
-	BeepOnOff = 0;
-	Continious = 0;
+// void Farand_Reset_Alarm(void)
+// {
+// 	Pattern = 0;
+// 	alarmCount = 0;
+// 	BeepPattern_Shifted = 0;
+// 	Pattern_Shifted = 0;
+// 	BeepOnOff = 0;
+// 	Continious = 0;
 
-	Message_Queue_Index = 0;
-	Message_Queue_CurrentIndex = 0;
-	shiftCount = 0;
-	alarm_Time = 0;
-}
+// 	Message_Queue_Index = 0;
+// 	Message_Queue_CurrentIndex = 0;
+// 	shiftCount = 0;
+// 	alarm_Time = 0;
+// }
 
 // void alarm_Task(void *arg)
 // {

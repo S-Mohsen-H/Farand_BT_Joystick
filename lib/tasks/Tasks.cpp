@@ -75,10 +75,8 @@ void constructByteArray(MessageStruct *message, byte *arr)
     }
     arr[1] = message->button[0];
     arr[COMMAND_BYTE_INDEX] = CMD_START_ACTION_MODE;
-    // for (int8 i =0;i<BUTTON_COUNT;i++)
-    // {
-    //     arr[ADC_COUNT+ ADC_COUNT]
-    // }
+    if (CODING_0X1A)
+        Code_0x1A(arr, BYTE_ARRAY_SIZE);
 }
 void readJoystick_task(void *arg)
 {
@@ -331,6 +329,7 @@ void bluetoothManager_task(void *arg)
             constructByteArray(&message, byteArr);
             if (SerialBT.connected(10))
             {
+                SerialBT.write(byteArr, sizeof(byteArr));
                 if (SerialBT.available())
                 {
                     SerialBT.readBytes(commBT, COMMAND_PACKET_SIZE);
@@ -373,7 +372,6 @@ void bluetoothManager_task(void *arg)
                     }
                 }
                 // #ifdef
-                SerialBT.write(byteArr, sizeof(byteArr));
 
 #ifdef DEBUG_BT_PRINT_VALUES
                 int16 arr[3];

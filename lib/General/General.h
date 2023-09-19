@@ -44,7 +44,7 @@
 #define BYTE_ARRAY_SIZE 16
 #define BYTE1A 0x1A
 #define BYTE1 0xAA
-
+#define CODING_0X1A false
 
 #define ACTION_MODE 0
 #define COMMAND_MODE_SERIAL 1

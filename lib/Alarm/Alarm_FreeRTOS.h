@@ -3,6 +3,7 @@
 // #include "General.h"
 #include "Arduino.h"
 
+#define ALARM_DEBUG_MODE_UART true
 typedef struct
 {
 	uint32_t Pattern;
@@ -39,8 +40,8 @@ extern hw_timer_t *hwAlarmTimer;
 extern bool usingTone;
 
 extern void Farand_Alarm(uint32_t PatternInit, uint8_t NumberInit, uint8_t AlarmTime, uint8_t BeepOnOffInit);
-extern void Farand_Update_Alarm(uint8_t _buzzerPin);
-extern void Farand_Reset_Alarm(void);
+// extern void Farand_Update_Alarm(uint8_t _buzzerPin);
+// extern void Farand_Reset_Alarm(void);
 extern void addAlarmToQueue(alarmMessage_typeDef *alarm);
 
 extern void alarm_task(void *arg);

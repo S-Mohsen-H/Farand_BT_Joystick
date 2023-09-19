@@ -15,9 +15,11 @@ void setup()
     tone(BUZZER_PIN, 2000, 50);
 
     Serial.begin(115200);
+
     qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
     qTaskManager = xQueueCreate(50, sizeof(uint8_t));
     qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
+    
     pinMode(LED_PIN, OUTPUT);
 
     xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
@@ -31,7 +33,7 @@ void setup()
     // timerAlarmWrite(hwAlarmTimer, 1000000 / 32, true);
 
     // timerAlarmEnable(hwAlarmTimer);
-    Farand_Reset_Alarm();
+    // Farand_Reset_Alarm();
 }
 void loop()
 {
