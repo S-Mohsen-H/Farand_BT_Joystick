@@ -40,12 +40,17 @@ void readAxes(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT], float alpha
         arr[i] = ((1 - alpha) * prev[i]) + (alpha * (temp / SAMPLE_COUNT));
         prev[i] = arr[i];
 #ifdef DEBUG_READAXES
+        // logMsg(__ASSERT_FUNC,"X: ")
         for (int8 i = 0; i < ADC_COUNT; i++)
             logMsg(__ASSERT_FUNC, "Axis: " + String(arr[i]), 1);
 #endif
         // printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
         // SerialBT.printf("%.2f  -", ((float)(adc[i]) / 4095) * 3.3);
     }
+#endif
+
+#ifdef DEBUG_READAXES2
+    printf("X: %d - Y: %d\n", arr[0], arr[1]);
 #endif
 }
 
@@ -343,7 +348,9 @@ void bluetoothManager_task(void *arg)
                         Joystick.alpha = (float)(commBT[COMMAND_BYTE_INDEX + 1]) / 100.0;
                         break;
                     case CMD_LED:
-                        digitalWrite(LED_PIN, commBT[COMMAND_BYTE_INDEX + 1]);
+                        digitalWrite(LED1_PIN, commBT[COMMAND_BYTE_INDEX + 1] & 1);
+                        digitalWrite(LED2_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1<<1));
+                        digitalWrite(LED3_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1<<2));
                         break;
                     case CMD_ALARM:
                     {

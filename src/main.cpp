@@ -20,7 +20,9 @@ void setup()
     qTaskManager = xQueueCreate(50, sizeof(uint8_t));
     qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
     
-    pinMode(LED_PIN, OUTPUT);
+    pinMode(LED1_PIN, OUTPUT);
+    pinMode(LED2_PIN, OUTPUT);
+    pinMode(LED3_PIN, OUTPUT);
 
     xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
     xTaskCreate(alarm_task, "Alarm Task", ALARM_STACK_SIZE, NULL, 19, NULL);

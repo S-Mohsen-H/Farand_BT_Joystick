@@ -24,20 +24,23 @@
 
 #define QUEUE_ADC_SIZE 5
 
-#define LED_PIN 23
-#define BUZZER_PIN 19
+#define LED1_PIN 23
+#define LED2_PIN 18
+#define LED3_PIN 25
+
+#define BUZZER_PIN 21
 #define ADC_PIN_1 36
 #define ADC_PIN_2 39
 #define ADC_PIN_3 34
 
-#define ADC_COUNT 3
+#define ADC_COUNT 2
 #define MAX_ADC_COUNT 3
 
-#define DIG_PIN_1 25
-#define DIG_PIN_2 26
-#define DIG_PIN_3 27
+#define DIG_PIN_1 5
+#define DIG_PIN_2 12
+#define DIG_PIN_3 4
 
-#define BUTTON_COUNT 1
+#define BUTTON_COUNT 3
 #define MAX_BUTTON_COUNT 3
 
 // #define BYTE_ARRAY_SIZE (ADC_COUNT * 1.5 + 1 + 2)
@@ -74,6 +77,7 @@ extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 
 #define UART_DEBUG_MODE 0
 // #define DEBUG_READAXES
+// #define DEBUG_READAXES2
 // #define DEBUG_BT_PRINT_VALUES
 
 /////////////////////////////** @note TYPEDEFS *///////////////////////
