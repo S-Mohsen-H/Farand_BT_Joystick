@@ -19,10 +19,17 @@ void setup()
     qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
     qTaskManager = xQueueCreate(50, sizeof(uint8_t));
     qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
-    
+
     pinMode(LED1_PIN, OUTPUT);
     pinMode(LED2_PIN, OUTPUT);
     pinMode(LED3_PIN, OUTPUT);
+    digitalWrite(LED1_PIN, 1);
+    digitalWrite(LED2_PIN, 1);
+    digitalWrite(LED3_PIN, 1);
+    delay(1000);
+    digitalWrite(LED1_PIN, 0);
+    digitalWrite(LED2_PIN, 0);
+    digitalWrite(LED3_PIN, 0);
 
     xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
     xTaskCreate(alarm_task, "Alarm Task", ALARM_STACK_SIZE, NULL, 19, NULL);
@@ -311,3 +318,29 @@ void loop()
 // // {
 // //     vTaskDelay(1000000);
 // // }
+// #include "Arduino.h"
+// #define LED1_PIN 23
+// #define LED2_PIN 18
+// #define LED3_PIN 25
+// void setup()
+// {
+//     Serial.begin(115200);
+//     Serial.print("Hello\n");
+//     pinMode(LED1_PIN, OUTPUT);
+//     pinMode(LED2_PIN, OUTPUT);
+//     pinMode(LED3_PIN, OUTPUT);
+//     digitalWrite(LED1_PIN, 1);
+//     digitalWrite(LED2_PIN, 1);
+//     digitalWrite(LED3_PIN, 1);
+// }
+// void loop()
+// {
+//     digitalWrite(LED1_PIN, 1);
+//     digitalWrite(LED2_PIN, 1);
+//     digitalWrite(LED3_PIN, 1);
+//     delay(1000);
+//     digitalWrite(LED1_PIN, 0);
+//     digitalWrite(LED2_PIN, 0);
+//     digitalWrite(LED3_PIN, 0);
+//     delay(500);
+// }

@@ -43,6 +43,7 @@
 #define BUTTON_COUNT 3
 #define MAX_BUTTON_COUNT 3
 
+#define BATTERY_SENSE_PIN 26
 // #define BYTE_ARRAY_SIZE (ADC_COUNT * 1.5 + 1 + 2)
 #define BYTE_ARRAY_SIZE 16
 #define BYTE1A 0x1A
@@ -56,6 +57,7 @@
 
 #define COMMAND_BYTE_INDEX 8
 #define COMMAND_PACKET_SIZE BYTE_ARRAY_SIZE
+#define BATTERY_LEVEL_INDEX 14
 
 extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 

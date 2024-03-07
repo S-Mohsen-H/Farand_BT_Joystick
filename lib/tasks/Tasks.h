@@ -15,7 +15,7 @@ typedef struct
 {
     uint16_t adc[MAX_ADC_COUNT];
     bool button[MAX_BUTTON_COUNT];
-
+    uint16_t bat;
 } MessageStruct;
 
 /**

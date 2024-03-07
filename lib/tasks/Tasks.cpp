@@ -5,7 +5,25 @@ QueueHandle_t qTaskManager;
 QueueHandle_t qADC;
 
 Joystick_TypeDef Joystick;
+void readBattery(uint16_t *bat, float alpha)
+{
+    uint32_t temp;
+    static int16 prev;
+#ifndef USING_MULTI_SAMPLING
+    for (int8 i = 0; i < ADC_COUNT; i++)
+        arr = analogRead(BATTERY_SENSE_PIN);
+#else
 
+    temp = 0;
+    for (int j = 0; j < SAMPLE_COUNT; j++)
+    {
+        temp += analogRead(BATTERY_SENSE_PIN);
+    }
+    *bat = ((1 - alpha) * prev) + (alpha * (temp / SAMPLE_COUNT));
+    prev = *bat;
+
+#endif
+}
 void readButtons(bool arr[MAX_BUTTON_COUNT], int8 digPins[MAX_BUTTON_COUNT])
 {
 
@@ -80,6 +98,9 @@ void constructByteArray(MessageStruct *message, byte *arr)
     }
     arr[1] = message->button[0];
     arr[COMMAND_BYTE_INDEX] = CMD_START_ACTION_MODE;
+    arr[BATTERY_LEVEL_INDEX] = message->bat >> 8;
+    arr[BATTERY_LEVEL_INDEX + 1] = message->bat & 0xFF;
+
     if (CODING_0X1A)
         Code_0x1A(arr, BYTE_ARRAY_SIZE);
 }
@@ -91,6 +112,7 @@ void readJoystick_task(void *arg)
 
     for (int i = 0; i < BUTTON_COUNT; i++)
         pinMode(digPins[i], INPUT);
+    pinMode(BATTERY_SENSE_PIN, INPUT);
     // printf("2 ok\n");
     MessageStruct message;
     int err;
@@ -106,6 +128,7 @@ void readJoystick_task(void *arg)
 
         readAxes(message.adc, adcPins, Joystick.alpha);
         readButtons(message.button, digPins);
+        readBattery(&(message.bat), Joystick.alpha);
         // printf("3 ok\n");
 
         err = xQueueSend(qTransmitBT, &message, Joystick.transmitRateMS);
@@ -349,8 +372,8 @@ void bluetoothManager_task(void *arg)
                         break;
                     case CMD_LED:
                         digitalWrite(LED1_PIN, commBT[COMMAND_BYTE_INDEX + 1] & 1);
-                        digitalWrite(LED2_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1<<1));
-                        digitalWrite(LED3_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1<<2));
+                        digitalWrite(LED2_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 1));
+                        digitalWrite(LED3_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 2));
                         break;
                     case CMD_ALARM:
                     {
