@@ -1,9 +1,10 @@
 #include "Tasks.h"
 // #include "General.h"
 QueueHandle_t qTransmitBT;
-QueueHandle_t qTaskManager;
+QueueHandle_t qBluetoothMac;
+QueueHandle_t qBuzzer;
+QueueHandle_t qLED;
 QueueHandle_t qADC;
-
 Joystick_TypeDef Joystick;
 void readBattery(uint16_t *bat, float alpha)
 {
@@ -21,6 +22,8 @@ void readBattery(uint16_t *bat, float alpha)
     }
     *bat = ((1 - alpha) * prev) + (alpha * (temp / SAMPLE_COUNT));
     prev = *bat;
+    logMsg(__ASSERT_FUNC, ": battery level: ", 1);
+    Serial.println(*bat);
 
 #endif
 }
@@ -113,9 +116,17 @@ void readJoystick_task(void *arg)
     for (int i = 0; i < BUTTON_COUNT; i++)
         pinMode(digPins[i], INPUT);
     pinMode(BATTERY_SENSE_PIN, INPUT);
+
+    alarmMessage_typeDef buttonBeep;
+    buttonBeep.AlarmCount = 1;
+    buttonBeep.Pattern = 0b11;
+    buttonBeep.TimePeriod = 2;
     // printf("2 ok\n");
     MessageStruct message;
     int err;
+    bool prevButton[MAX_BUTTON_COUNT];
+    for (uint8_t i = 0; i < MAX_BUTTON_COUNT; i++)
+        prevButton[i] = 1;
     // float alpha = INITIAL_SAMPLING_COEFFICIENT;
     while (1)
 
@@ -128,6 +139,14 @@ void readJoystick_task(void *arg)
 
         readAxes(message.adc, adcPins, Joystick.alpha);
         readButtons(message.button, digPins);
+        for (uint8_t i = 0; i < BUTTON_COUNT; i++)
+        {
+            if (message.button[i] != prevButton[i] && prevButton[i] == 1)
+            {
+                addAlarmToQueue(&buttonBeep);
+            }
+            prevButton[i] = message.button[i];
+        }
         readBattery(&(message.bat), Joystick.alpha);
         // printf("3 ok\n");
 
@@ -147,6 +166,8 @@ void readJoystick_task(void *arg)
 void bluetoothManager_task(void *arg)
 {
     // printf("0 ok\n");
+    uint8_t msg = 2;
+    xQueueSend(qLED, &msg, 1000);
     Joystick.mode = COMMAND_MODE_PACKET;
     Joystick.transmitRateMS = BT_INITIAL_TRANSMIT_RATE_MS;
     Joystick.alpha = INITIAL_SAMPLING_COEFFICIENT;
@@ -163,23 +184,26 @@ void bluetoothManager_task(void *arg)
     alarmMessage.BeepOnOff = 1;
     alarmMessage.frequency = 2000;
     alarmMessage.buzzerPin = BUZZER_PIN;
+
     for (int8 i = 0; i < 6; i++)
     {
-        xQueueSend(qTaskManager, mac + i, 1000);
+        xQueueSend(qBluetoothMac, mac + i, 1000);
     }
 
     bool err;
 
     while (1)
     {
-        uint32_t now;
+        uint32_t now1;
+        uint32_t now2;
         if (!Joystick.isConnected)
         {
-            now = millis();
+            now1 = millis();
+            now2 = millis();
             while (!Joystick.isConnected)
             {
                 Joystick.isConnected = SerialBT.connected(portMAX_DELAY);
-                if (!Joystick.isConnected && millis() - now > BT_RESET_TIMEOUT_SEC * 1000 && BT_TIMEOUT_ACTIVE)
+                if (!Joystick.isConnected && millis() - now1 > BT_RESET_TIMEOUT_SEC * 1000 && BT_TIMEOUT_ACTIVE)
                 {
                     alarmMessage_typeDef rebootAlarm;
                     rebootAlarm.Pattern = 0xF0F0FFFF;
@@ -193,12 +217,30 @@ void bluetoothManager_task(void *arg)
                     vTaskDelay(1010);
                     ESP.restart(); /** @note The device might need a reboot if connection isn't established within the timeout*/
                 }
+                if (!Joystick.isConnected && (millis() - now2) > 3000)
+                {
+                    alarmMessage_typeDef notConnectedAlarm;
+                    notConnectedAlarm.Pattern = 0xFFF;
+                    notConnectedAlarm.AlarmCount = 1;
+                    notConnectedAlarm.BeepOnOff = 1;
+                    notConnectedAlarm.buzzerPin = BUZZER_PIN;
+                    notConnectedAlarm.frequency = 3000;
+                    notConnectedAlarm.TimePeriod = 12;
+                    addAlarmToQueue(&notConnectedAlarm);
+                    now2 = millis();
+                }
                 vTaskDelay(1);
             }
+            alarmMessage.Pattern = 0xF0F00000;
+            alarmMessage.frequency = 3000;
+            alarmMessage.TimePeriod = 32;
+            alarmMessage.AlarmCount = 1;
+            addAlarmToQueue(&alarmMessage);
             logMsg(__ASSERT_FUNC, "Bluetooth_Connection", Joystick.isConnected);
-            printf("Took %d seconds\n", (millis() - now) / 1000);
+            printf("Took %d seconds\n", (millis() - now1) / 1000);
         }
-
+        msg = 3;
+        xQueueSend(qLED, &msg, portMAX_DELAY);
         while (Joystick.mode) // command modes
         {
             if (SerialBT.available())
@@ -371,9 +413,7 @@ void bluetoothManager_task(void *arg)
                         Joystick.alpha = (float)(commBT[COMMAND_BYTE_INDEX + 1]) / 100.0;
                         break;
                     case CMD_LED:
-                        digitalWrite(LED1_PIN, commBT[COMMAND_BYTE_INDEX + 1] & 1);
-                        digitalWrite(LED2_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 1));
-                        digitalWrite(LED3_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 2));
+                        digitalWrite(LED_ALARM_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 2));
                         break;
                     case CMD_ALARM:
                     {
@@ -435,6 +475,7 @@ void taskManager_task(void *arg)
 {
     int8 loop = 1;
     int8 comm[10];
+    uint8_t ledMessage[50];
     if (ADC_TASK_ENABLED)
         xTaskCreate(readJoystick_task, "Analog Read Task", READJOYSTICK_STACK_SIZE, NULL, 20, NULL);
     if (BT_TASK_ENABLED)
@@ -448,7 +489,6 @@ void taskManager_task(void *arg)
             qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
             logMsg(__ASSERT_FUNC, "qTransmitBT recreated", 1);
         }
-
         if (Serial.available())
         {
             comm[0] = Serial.read();
@@ -481,11 +521,13 @@ void taskManager_task(void *arg)
                 // SerialBT.end
                 uint8_t mac[6];
                 // SerialBT.getBtAddress(mac);
+
                 for (int8 i = 0; i < 6; i++)
                 {
-                    xQueueReceive(qTaskManager, mac + i, 1000);
+                    xQueueReceive(qBluetoothMac, mac + i, 1000);
                 }
                 Serial.printf("BT MAC: %x:%x:%x:%x:%x:%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
                 // SerialBT.end();
                 break;
             }
@@ -564,5 +606,70 @@ void Code_0x1A(uint8_t *Buf, uint32_t Len)
         // Shift high nibble of code byte one bit to left to clear bit position 4 to 0, this avoids occurence of 0x1A in code byte itself
         Code_Byte = (0xF0 & Buf[8 * n]) << 1;
         Buf[8 * n] = (0x0F & Buf[8 * n]) | Code_Byte;
+    }
+}
+void ledManager_task(void *arg)
+{
+    // uint8_t msg[50];
+    // if (!xQueueReceive(qLED, msg, portMAX_DELAY))
+    //     msg[0] = 1;
+    // while (msg[0] == 1)
+    // {
+    //     digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+    //     vTaskDelay(400);
+    //     digitalWrite(LED_CONNECTION_STATE_PIN, LOW);
+    //     vTaskDelay(2000);
+    // }
+    // while (msg[0] == 2)
+    // {
+    //     digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+    //     vTaskDelay(500);
+    //     digitalWrite(LED_CONNECTION_STATE_PIN, LOW);
+    //     vTaskDelay(500);
+    // }
+    // while (msg[0] == 3)
+    // {
+    //     digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+    //     vTaskDelay(100);
+    // }
+    while (1)
+    {
+        while (Joystick.isConnected)
+        {
+            digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+            vTaskDelay(100);
+        }
+        while (!Joystick.isConnected)
+        {
+            digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+            vTaskDelay(500);
+            digitalWrite(LED_CONNECTION_STATE_PIN, LOW);
+            vTaskDelay(1000);
+        }
+    }
+}
+void buzzManager_task(void *arg)
+{
+    uint8_t msg[50];
+    if (!xQueueReceive(qBuzzer, msg, portMAX_DELAY))
+        msg[0] = 1;
+    while (msg[0] == 1)
+    {
+        digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+        vTaskDelay(400);
+        digitalWrite(LED_CONNECTION_STATE_PIN, LOW);
+        vTaskDelay(2000);
+    }
+    while (msg[0] == 2)
+    {
+        digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+        vTaskDelay(500);
+        digitalWrite(LED_CONNECTION_STATE_PIN, LOW);
+        vTaskDelay(500);
+    }
+    while (msg[0] == 3)
+    {
+        digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+        vTaskDelay(100);
     }
 }

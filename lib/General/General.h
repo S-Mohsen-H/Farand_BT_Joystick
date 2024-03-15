@@ -24,11 +24,10 @@
 
 #define QUEUE_ADC_SIZE 5
 
-#define LED1_PIN 23
-#define LED2_PIN 18
-#define LED3_PIN 25
+#define LED_CONNECTION_STATE_PIN 23
+#define LED_BATTERY_STATE_PIN 18
+#define LED_ALARM_PIN 25
 
-#define BUZZER_PIN 21
 #define ADC_PIN_1 36
 #define ADC_PIN_2 39
 #define ADC_PIN_3 34
@@ -61,7 +60,6 @@
 
 extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 
-
 #define CMD_START_ACTION_MODE 0xA0
 #define CMD_TRANSMIT_RATE 0xC0
 #define CMD_ALPHA 0xC1
@@ -78,6 +76,8 @@ extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 #define INITIAL_SAMPLING_COEFFICIENT 0.8
 
 #define UART_DEBUG_MODE 0
+
+#define MAC_MESSAGE 0x10
 // #define DEBUG_READAXES
 // #define DEBUG_READAXES2
 // #define DEBUG_BT_PRINT_VALUES
@@ -95,7 +95,9 @@ typedef struct
 /////////////////////////////** @note QUEUES *///////////////////////
 
 extern QueueHandle_t qTransmitBT;
-extern QueueHandle_t qTaskManager;
+extern QueueHandle_t qBluetoothMac;
+extern QueueHandle_t qLED;
+extern QueueHandle_t qBuzzer;
 extern QueueHandle_t qADC;
 
 #define ADC_TASK_ENABLED 1
