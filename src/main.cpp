@@ -24,6 +24,8 @@ void setup()
 
     xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
     xTaskCreate(alarm_task, "Alarm Task", ALARM_STACK_SIZE, NULL, 19, NULL);
+    xTaskCreate(ledManager_task, "LED Task", 0x400, NULL, 10, NULL);
+    // xTaskCreate(buzzManager_task, "LED Task", 0x200, NULL, 10, NULL);
     // xTimerCreate("Alarm timer", 31.25, true, NULL, Farand_Update_Alarm);
 
     // hwAlarmTimer = timerBegin(0, getCpuFrequencyMhz(), true);

@@ -22,8 +22,8 @@ void readBattery(uint16_t *bat, float alpha)
     }
     *bat = ((1 - alpha) * prev) + (alpha * (temp / SAMPLE_COUNT));
     prev = *bat;
-    logMsg(__ASSERT_FUNC, ": battery level: ", 1);
-    Serial.println(*bat);
+    // logMsg(__ASSERT_FUNC, ": battery level: ", 1);
+    // Serial.println(*bat);
 
 #endif
 }
@@ -100,6 +100,11 @@ void constructByteArray(MessageStruct *message, byte *arr)
         arr[i * 2 + 3] = message->adc[i] & 0xFF;
     }
     arr[1] = message->button[0];
+    for (uint8_t i = 0; i < BUTTON_COUNT; i++)
+    {
+        arr[1] |= ((message->button[i]) << i);
+    }
+
     arr[COMMAND_BYTE_INDEX] = CMD_START_ACTION_MODE;
     arr[BATTERY_LEVEL_INDEX] = message->bat >> 8;
     arr[BATTERY_LEVEL_INDEX + 1] = message->bat & 0xFF;
@@ -184,51 +189,54 @@ void bluetoothManager_task(void *arg)
     alarmMessage.BeepOnOff = 1;
     alarmMessage.frequency = 2000;
     alarmMessage.buzzerPin = BUZZER_PIN;
-
+    alarmMessage_typeDef rebootAlarm;
+    rebootAlarm.Pattern = 0xF0F0F0F0;
+    rebootAlarm.AlarmCount = 1;
+    rebootAlarm.BeepOnOff = 1;
+    rebootAlarm.buzzerPin = BUZZER_PIN;
+    rebootAlarm.frequency = 3000;
+    rebootAlarm.TimePeriod = 32;
     for (int8 i = 0; i < 6; i++)
     {
         xQueueSend(qBluetoothMac, mac + i, 1000);
     }
+    addAlarmToQueue(&rebootAlarm);
 
+    // SerialBT.register_callback();
     bool err;
-
+    uint32_t now1;
+    uint32_t now2;
+    uint32_t now3;
     while (1)
     {
-        uint32_t now1;
-        uint32_t now2;
+
         if (!Joystick.isConnected)
         {
             now1 = millis();
             now2 = millis();
             while (!Joystick.isConnected)
             {
+
                 Joystick.isConnected = SerialBT.connected(portMAX_DELAY);
-                if (!Joystick.isConnected && millis() - now1 > BT_RESET_TIMEOUT_SEC * 1000 && BT_TIMEOUT_ACTIVE)
+                if (!Joystick.isConnected && (millis() - now1) > BT_RESET_TIMEOUT_SEC * 1000 && BT_TIMEOUT_ACTIVE)
                 {
-                    alarmMessage_typeDef rebootAlarm;
-                    rebootAlarm.Pattern = 0xF0F0FFFF;
-                    rebootAlarm.AlarmCount = 1;
-                    rebootAlarm.BeepOnOff = 1;
-                    rebootAlarm.buzzerPin = BUZZER_PIN;
-                    rebootAlarm.frequency = 3000;
-                    rebootAlarm.TimePeriod = 32;
-                    addAlarmToQueue(&rebootAlarm);
+                    // addAlarmToQueue(&rebootAlarm);
                     logMsg(__ASSERT_FUNC, "restarting esp", 0);
-                    vTaskDelay(1010);
+                    // vTaskDelay(1010);
                     ESP.restart(); /** @note The device might need a reboot if connection isn't established within the timeout*/
                 }
-                if (!Joystick.isConnected && (millis() - now2) > 3000)
-                {
-                    alarmMessage_typeDef notConnectedAlarm;
-                    notConnectedAlarm.Pattern = 0xFFF;
-                    notConnectedAlarm.AlarmCount = 1;
-                    notConnectedAlarm.BeepOnOff = 1;
-                    notConnectedAlarm.buzzerPin = BUZZER_PIN;
-                    notConnectedAlarm.frequency = 3000;
-                    notConnectedAlarm.TimePeriod = 12;
-                    addAlarmToQueue(&notConnectedAlarm);
-                    now2 = millis();
-                }
+                // if (!Joystick.isConnected && (millis() - now2) > 3000)
+                // {
+                //     alarmMessage_typeDef notConnectedAlarm;
+                //     notConnectedAlarm.Pattern = 0xFFF;
+                //     notConnectedAlarm.AlarmCount = 1;
+                //     notConnectedAlarm.BeepOnOff = 1;
+                //     notConnectedAlarm.buzzerPin = BUZZER_PIN;
+                //     notConnectedAlarm.frequency = 3000;
+                //     notConnectedAlarm.TimePeriod = 12;
+                //     addAlarmToQueue(&notConnectedAlarm);
+                //     now2 = millis();
+                // }
                 vTaskDelay(1);
             }
             alarmMessage.Pattern = 0xF0F00000;
@@ -397,8 +405,12 @@ void bluetoothManager_task(void *arg)
         if (err)
         {
             constructByteArray(&message, byteArr);
-            if (SerialBT.connected(10))
+            // if (SerialBT.connected(10))
+
+            // if (!SerialBT.isClosed())
+            if (Joystick.isConnected == true)
             {
+                now3 = millis();
                 SerialBT.write(byteArr, sizeof(byteArr));
                 if (SerialBT.available())
                 {
@@ -458,16 +470,32 @@ void bluetoothManager_task(void *arg)
             }
             else
             {
-                Joystick.isConnected = 0;
-                // static bool ledStat = 0;
-                // digitalWrite(LED_PIN, ledStat);
-                // ledStat = !ledStat;
+                // Joystick.isConnected = 0;
+                // Joystick.mode = COMMAND_MODE_PACKET;
+                // logMsg(__ASSERT_FUNC, "disconnected", 0);
+                // printf("\ndisconnected\n");
+                // // static bool ledStat = 0;
+                // // digitalWrite(LED_PIN, ledStat);
+                // // ledStat = !ledStat;
             }
         }
         else
         {
             logMsg(__ASSERT_FUNC, "No message received", 0);
+            printf("\nNo message received\n");
         }
+        if (SerialBT.isClosed() && millis() - now3 > 1000)
+        {
+            Joystick.isConnected = 0;
+            Joystick.mode = COMMAND_MODE_PACKET;
+            logMsg(__ASSERT_FUNC, "disconnected", 0);
+            printf("\ndisconnected\n");
+            // static bool ledStat = 0;
+            // digitalWrite(LED_PIN, ledStat);
+            // ledStat = !ledStat;
+            now3 = millis();
+        }
+
         vTaskDelay(Joystick.transmitRateMS);
     }
 }
@@ -483,10 +511,10 @@ void taskManager_task(void *arg)
     while (1)
     {
         vTaskDelay(1);
-        if (uxQueueMessagesWaiting(qTransmitBT) == 10)
+        if (uxQueueMessagesWaiting(qTransmitBT) == 100)
         {
             vQueueDelete(qTransmitBT);
-            qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
+            qTransmitBT = xQueueCreate(100, sizeof(MessageStruct));
             logMsg(__ASSERT_FUNC, "qTransmitBT recreated", 1);
         }
         if (Serial.available())
@@ -608,6 +636,7 @@ void Code_0x1A(uint8_t *Buf, uint32_t Len)
         Buf[8 * n] = (0x0F & Buf[8 * n]) | Code_Byte;
     }
 }
+
 void ledManager_task(void *arg)
 {
     // uint8_t msg[50];
