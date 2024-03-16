@@ -53,6 +53,8 @@ void addAlarmToQueue(alarmMessage_typeDef *alarm)
 }
 void alarm_task(void *arg)
 {
+	pinMode(BUZZER_PIN, OUTPUT);
+
 	alarmMessage_typeDef alarm;
 	qAlarmMessage = xQueueCreate(100, sizeof(alarmMessage_typeDef));
 	// alarm.Pattern = SHORT_BEEP_X1;
@@ -68,7 +70,7 @@ void alarm_task(void *arg)
 		{
 			vQueueDelete(qAlarmMessage);
 			qAlarmMessage = xQueueCreate(100, sizeof(alarmMessage_typeDef));
-			logMsg(__ASSERT_FUNC, "qTransmitBT recreated", 1);
+			logMsg(__ASSERT_FUNC, "qAlarmMessage recreated", 1);
 		}
 		// if (uxQueueMessagesWaiting(qAlarmMessage) > 0)
 		if (xQueueReceive(qAlarmMessage, &alarm, 1))
@@ -78,10 +80,12 @@ void alarm_task(void *arg)
 			for (uint8_t i = 0; i < alarm.TimePeriod; i++)
 			{
 				if (alarm.Pattern & (1 << i))
+				{
 					if (usingTone)
 						tone(alarm.buzzerPin, alarm.frequency);
 					else
 						digitalWrite(alarm.buzzerPin, 1);
+				}
 				else if (usingTone)
 					noTone(alarm.buzzerPin);
 				else

@@ -24,9 +24,9 @@
 
 #define QUEUE_ADC_SIZE 5
 
-#define LED1_PIN 23
-#define LED2_PIN 18
-#define LED3_PIN 25
+#define LED_CONNECTION_STATE_PIN 23
+#define LED_BATTERY_STATE_PIN 18
+#define LED_ALARM_PIN 25
 
 #define BUZZER_PIN 21
 #define ADC_PIN_1 36
@@ -37,7 +37,7 @@
 #define MAX_ADC_COUNT 3
 
 #define DIG_PIN_1 5
-#define DIG_PIN_2 12
+#define DIG_PIN_2 14
 #define DIG_PIN_3 4
 
 #define BUTTON_COUNT 3
@@ -58,9 +58,9 @@
 #define COMMAND_BYTE_INDEX 8
 #define COMMAND_PACKET_SIZE BYTE_ARRAY_SIZE
 #define BATTERY_LEVEL_INDEX 14
+#define MAC_MESSAGE 0x10
 
 extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
-
 
 #define CMD_START_ACTION_MODE 0xA0
 #define CMD_TRANSMIT_RATE 0xC0
@@ -90,12 +90,15 @@ typedef struct
     int8 mode;
     uint16_t transmitRateMS;
     float alpha;
+    float battery;
 } Joystick_TypeDef;
 
 /////////////////////////////** @note QUEUES *///////////////////////
 
 extern QueueHandle_t qTransmitBT;
-extern QueueHandle_t qTaskManager;
+extern QueueHandle_t qBluetoothMac;
+extern QueueHandle_t qLED;
+extern QueueHandle_t qBuzzer;
 extern QueueHandle_t qADC;
 
 #define ADC_TASK_ENABLED 1
@@ -104,6 +107,7 @@ extern QueueHandle_t qADC;
 /////////////////////////////** @note VARIABLES *///////////////////////
 
 extern Joystick_TypeDef Joystick;
+
 // extern JBT;
 
 ///////////////////////////** @note FUNCTIONS */////////////////////////

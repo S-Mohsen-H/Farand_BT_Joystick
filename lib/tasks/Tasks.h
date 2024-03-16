@@ -48,6 +48,7 @@ extern void constructByteArray(MessageStruct *message, byte *arr);
 extern void readJoystick_task(void *arg);
 extern void bluetoothManager_task(void *arg);
 extern void taskManager_task(void *arg);
+extern void ledManager_task(void *arg);
 
 /**
  * @brief Checks if any elements of the byte array is 0d26 (0x1A)

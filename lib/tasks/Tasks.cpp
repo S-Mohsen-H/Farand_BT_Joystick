@@ -1,12 +1,15 @@
 #include "Tasks.h"
 // #include "General.h"
 QueueHandle_t qTransmitBT;
-QueueHandle_t qTaskManager;
+QueueHandle_t qBluetoothMac;
+QueueHandle_t qBuzzer;
+QueueHandle_t qLED;
 QueueHandle_t qADC;
 
 Joystick_TypeDef Joystick;
 void readBattery(uint16_t *bat, float alpha)
 {
+    static uint64_t now = millis();
     uint32_t temp;
     static int16 prev;
 #ifndef USING_MULTI_SAMPLING
@@ -21,6 +24,8 @@ void readBattery(uint16_t *bat, float alpha)
     }
     *bat = ((1 - alpha) * prev) + (alpha * (temp / SAMPLE_COUNT));
     prev = *bat;
+    if (millis() - now > 1000)
+        printf("battery : %d\n", *bat);
 
 #endif
 }
@@ -96,7 +101,10 @@ void constructByteArray(MessageStruct *message, byte *arr)
         arr[i * 2 + 2] = message->adc[i] >> 8;
         arr[i * 2 + 3] = message->adc[i] & 0xFF;
     }
-    arr[1] = message->button[0];
+    for (uint8_t i = 0; i < BUTTON_COUNT; i++)
+    {
+        arr[1] |= ((message->button[i]) << i);
+    }
     arr[COMMAND_BYTE_INDEX] = CMD_START_ACTION_MODE;
     arr[BATTERY_LEVEL_INDEX] = message->bat >> 8;
     arr[BATTERY_LEVEL_INDEX + 1] = message->bat & 0xFF;
@@ -109,10 +117,16 @@ void readJoystick_task(void *arg)
     int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
     int8 digPins[MAX_BUTTON_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
     // printf("1 ok\n");
-
+    alarmMessage_typeDef buttonBeep;
+    buttonBeep.AlarmCount = 1;
+    buttonBeep.Pattern = 0b11;
+    buttonBeep.TimePeriod = 2;
     for (int i = 0; i < BUTTON_COUNT; i++)
         pinMode(digPins[i], INPUT);
     pinMode(BATTERY_SENSE_PIN, INPUT);
+    bool prevButton[MAX_BUTTON_COUNT];
+    for (uint8_t i = 0; i < MAX_BUTTON_COUNT; i++)
+        prevButton[i] = 1;
     // printf("2 ok\n");
     MessageStruct message;
     int err;
@@ -128,7 +142,17 @@ void readJoystick_task(void *arg)
 
         readAxes(message.adc, adcPins, Joystick.alpha);
         readButtons(message.button, digPins);
+        for (uint8_t i = 0; i < BUTTON_COUNT; i++)
+        {
+            if (message.button[i] != prevButton[i] && prevButton[i] == 1)
+            {
+                addAlarmToQueue(&buttonBeep);
+            }
+            prevButton[i] = message.button[i];
+        }
         readBattery(&(message.bat), Joystick.alpha);
+        Joystick.battery = message.bat * 3.3 * 28.4 / 4096;
+        uint8_t msg = 2;
         // printf("3 ok\n");
 
         err = xQueueSend(qTransmitBT, &message, Joystick.transmitRateMS);
@@ -165,10 +189,20 @@ void bluetoothManager_task(void *arg)
     alarmMessage.buzzerPin = BUZZER_PIN;
     for (int8 i = 0; i < 6; i++)
     {
-        xQueueSend(qTaskManager, mac + i, 1000);
+        xQueueSend(qTransmitBT, mac + i, 1000);
     }
 
     bool err;
+    uint8_t msg = 2;
+    xQueueSend(qLED, &msg, 1000);
+    alarmMessage_typeDef rebootAlarm;
+    rebootAlarm.Pattern = 0xC0C0C0C0;
+    rebootAlarm.AlarmCount = 1;
+    rebootAlarm.BeepOnOff = 1;
+    rebootAlarm.buzzerPin = BUZZER_PIN;
+    rebootAlarm.frequency = 3000;
+    rebootAlarm.TimePeriod = 32;
+    addAlarmToQueue(&rebootAlarm);
 
     while (1)
     {
@@ -371,9 +405,8 @@ void bluetoothManager_task(void *arg)
                         Joystick.alpha = (float)(commBT[COMMAND_BYTE_INDEX + 1]) / 100.0;
                         break;
                     case CMD_LED:
-                        digitalWrite(LED1_PIN, commBT[COMMAND_BYTE_INDEX + 1] & 1);
-                        digitalWrite(LED2_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 1));
-                        digitalWrite(LED3_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 2));
+                        digitalWrite(LED_ALARM_PIN, commBT[COMMAND_BYTE_INDEX + 1] & (1 << 2));
+
                         break;
                     case CMD_ALARM:
                     {
@@ -442,11 +475,12 @@ void taskManager_task(void *arg)
     while (1)
     {
         vTaskDelay(1);
-        if (uxQueueMessagesWaiting(qTransmitBT) == 10)
+        if (uxQueueMessagesWaiting(qTransmitBT) == 100)
         {
             vQueueDelete(qTransmitBT);
-            qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
+            qTransmitBT = xQueueCreate(100, sizeof(MessageStruct));
             logMsg(__ASSERT_FUNC, "qTransmitBT recreated", 1);
+            // Joystick.isConnected = 0;
         }
 
         if (Serial.available())
@@ -483,7 +517,7 @@ void taskManager_task(void *arg)
                 // SerialBT.getBtAddress(mac);
                 for (int8 i = 0; i < 6; i++)
                 {
-                    xQueueReceive(qTaskManager, mac + i, 1000);
+                    xQueueReceive(qTransmitBT, mac + i, 1000);
                 }
                 Serial.printf("BT MAC: %x:%x:%x:%x:%x:%x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
                 // SerialBT.end();
@@ -564,5 +598,40 @@ void Code_0x1A(uint8_t *Buf, uint32_t Len)
         // Shift high nibble of code byte one bit to left to clear bit position 4 to 0, this avoids occurence of 0x1A in code byte itself
         Code_Byte = (0xF0 & Buf[8 * n]) << 1;
         Buf[8 * n] = (0x0F & Buf[8 * n]) | Code_Byte;
+    }
+}
+void ledManager_task(void *arg)
+{
+    pinMode(LED_CONNECTION_STATE_PIN, OUTPUT);
+    pinMode(LED_BATTERY_STATE_PIN, OUTPUT);
+    pinMode(LED_ALARM_PIN, OUTPUT);
+    alarmMessage_typeDef disconnectionAlarm;
+    disconnectionAlarm.Pattern = 0x7;
+    disconnectionAlarm.TimePeriod = 3;
+    uint32_t now = millis();
+    while (1)
+    {
+        if (Joystick.isConnected)
+        {
+            digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+            vTaskDelay(100);
+        }
+        else
+        {
+
+            digitalWrite(LED_CONNECTION_STATE_PIN, HIGH);
+            vTaskDelay(500);
+            digitalWrite(LED_CONNECTION_STATE_PIN, LOW);
+            vTaskDelay(1000);
+            if (millis() - now > 5000)
+            {
+                addAlarmToQueue(&disconnectionAlarm);
+                now = millis();
+            }
+        }
+        if (Joystick.battery < 3.1)
+            digitalWrite(LED_BATTERY_STATE_PIN, 1);
+        else
+            digitalWrite(LED_BATTERY_STATE_PIN, 0);
     }
 }

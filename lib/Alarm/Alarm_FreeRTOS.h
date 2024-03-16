@@ -4,13 +4,16 @@
 #include "Arduino.h"
 
 #define ALARM_DEBUG_MODE_UART true
+
+#define BUZZER_PIN 21
+
 typedef struct
 {
 	uint32_t Pattern;
 	uint32_t AlarmCount = 1;
 	uint8_t BeepOnOff = 1;
 	uint8_t TimePeriod = 32;
-	uint8_t buzzerPin = 19;
+	uint8_t buzzerPin = BUZZER_PIN;
 	uint16_t frequency = 2500;
 
 } alarmMessage_typeDef;

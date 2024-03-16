@@ -16,23 +16,14 @@ void setup()
 
     Serial.begin(115200);
 
-    qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
-    qTaskManager = xQueueCreate(50, sizeof(uint8_t));
+    qTransmitBT = xQueueCreate(20, sizeof(MessageStruct));
+    qBluetoothMac = xQueueCreate(50, sizeof(uint8_t));
+    qLED = xQueueCreate(50, sizeof(uint8_t));
     qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
-
-    pinMode(LED1_PIN, OUTPUT);
-    pinMode(LED2_PIN, OUTPUT);
-    pinMode(LED3_PIN, OUTPUT);
-    digitalWrite(LED1_PIN, 1);
-    digitalWrite(LED2_PIN, 1);
-    digitalWrite(LED3_PIN, 1);
-    delay(1000);
-    digitalWrite(LED1_PIN, 0);
-    digitalWrite(LED2_PIN, 0);
-    digitalWrite(LED3_PIN, 0);
 
     xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
     xTaskCreate(alarm_task, "Alarm Task", ALARM_STACK_SIZE, NULL, 19, NULL);
+    xTaskCreate(ledManager_task, "LED Task", 0x400, NULL, 10, NULL);
     // xTimerCreate("Alarm timer", 31.25, true, NULL, Farand_Update_Alarm);
 
     // hwAlarmTimer = timerBegin(0, getCpuFrequencyMhz(), true);
