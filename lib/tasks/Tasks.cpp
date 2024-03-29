@@ -145,9 +145,8 @@ void readJoystick_task(void *arg)
         for (uint8_t i = 0; i < BUTTON_COUNT; i++)
         {
             if (message.button[i] != prevButton[i] && prevButton[i] == 1)
-            {
-                addAlarmToQueue(&buttonBeep);
-            }
+                if (Joystick.isConnected)
+                    addAlarmToQueue(&buttonBeep);
             prevButton[i] = message.button[i];
         }
         readBattery(&(message.bat), Joystick.alpha);
@@ -196,7 +195,7 @@ void bluetoothManager_task(void *arg)
     uint8_t msg = 2;
     xQueueSend(qLED, &msg, 1000);
     alarmMessage_typeDef rebootAlarm;
-    rebootAlarm.Pattern = 0xC0C0C0C0;
+    rebootAlarm.Pattern = MEDIUM_BEEP_X1;
     rebootAlarm.AlarmCount = 1;
     rebootAlarm.BeepOnOff = 1;
     rebootAlarm.buzzerPin = BUZZER_PIN;
@@ -216,11 +215,8 @@ void bluetoothManager_task(void *arg)
                 if (!Joystick.isConnected && millis() - now > BT_RESET_TIMEOUT_SEC * 1000 && BT_TIMEOUT_ACTIVE)
                 {
                     alarmMessage_typeDef rebootAlarm;
-                    rebootAlarm.Pattern = 0xF0F0FFFF;
-                    rebootAlarm.AlarmCount = 1;
-                    rebootAlarm.BeepOnOff = 1;
+                    rebootAlarm.Pattern = VERY_LONG_BEEP;
                     rebootAlarm.buzzerPin = BUZZER_PIN;
-                    rebootAlarm.frequency = 3000;
                     rebootAlarm.TimePeriod = 32;
                     addAlarmToQueue(&rebootAlarm);
                     logMsg(__ASSERT_FUNC, "restarting esp", 0);
@@ -606,8 +602,8 @@ void ledManager_task(void *arg)
     pinMode(LED_BATTERY_STATE_PIN, OUTPUT);
     pinMode(LED_ALARM_PIN, OUTPUT);
     alarmMessage_typeDef disconnectionAlarm;
-    disconnectionAlarm.Pattern = 0x7;
-    disconnectionAlarm.TimePeriod = 3;
+    disconnectionAlarm.Pattern = SHORT_BEEP_X2;
+    disconnectionAlarm.TimePeriod = 16;
     uint32_t now = millis();
     while (1)
     {

@@ -71,7 +71,7 @@ extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 #define BT_INITIAL_TRANSMIT_RATE_MS 100
 #define BT_SSID "ESP32_Joystick"
 #define BT_RESET_TIMEOUT_SEC 100
-#define BT_TIMEOUT_ACTIVE false
+#define BT_TIMEOUT_ACTIVE true
 
 #define USING_MULTI_SAMPLING
 #define SAMPLE_COUNT 50
