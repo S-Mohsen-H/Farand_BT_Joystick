@@ -18,9 +18,10 @@
 #endif
 
 #define TASKMANAGER_STACK_SIZE 0x3000
-#define BLUETOOTHMANAGER_STACK_SIZE 0x2000
+#define BLUETOOTHMANAGER_STACK_SIZE 0x8000
 #define READJOYSTICK_STACK_SIZE 0x1000
 #define ALARM_STACK_SIZE 0x2000
+#define LEDMANAGER_STACK_SIZE 0x400
 
 #define QUEUE_ADC_SIZE 5
 
@@ -32,6 +33,7 @@
 #define ADC_PIN_1 36
 #define ADC_PIN_2 39
 #define ADC_PIN_3 34
+#define ADC_PIN_4 32
 
 #define ADC_COUNT 2
 #define MAX_ADC_COUNT 3
@@ -107,7 +109,6 @@ extern QueueHandle_t qADC;
 /////////////////////////////** @note VARIABLES *///////////////////////
 
 extern Joystick_TypeDef Joystick;
-
 // extern JBT;
 
 ///////////////////////////** @note FUNCTIONS */////////////////////////

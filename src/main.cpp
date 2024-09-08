@@ -11,19 +11,24 @@
 
 void setup()
 {
+    pinMode(LED_CONNECTION_STATE_PIN, OUTPUT);
+    pinMode(LED_BATTERY_STATE_PIN, OUTPUT);
+    pinMode(LED_ALARM_PIN, OUTPUT);
+    // pinMode(ADC_PIN_3, INPUT);
     pinMode(BUZZER_PIN, OUTPUT);
     tone(BUZZER_PIN, 2000, 50);
 
     Serial.begin(115200);
 
-    qTransmitBT = xQueueCreate(20, sizeof(MessageStruct));
+    qTransmitBT = xQueueCreate(100, sizeof(MessageStruct));
     qBluetoothMac = xQueueCreate(50, sizeof(uint8_t));
     qLED = xQueueCreate(50, sizeof(uint8_t));
     qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
 
-    xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 1, NULL);
+    xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(alarm_task, "Alarm Task", ALARM_STACK_SIZE, NULL, 19, NULL);
     xTaskCreate(ledManager_task, "LED Task", 0x400, NULL, 10, NULL);
+    // esp_task_wdt_init(CONFIG_ESP_TASK_WDT_TIMEOUT_S - 3, CONFIG_ESP_TASK_WDT_PANIC);
     // xTimerCreate("Alarm timer", 31.25, true, NULL, Farand_Update_Alarm);
 
     // hwAlarmTimer = timerBegin(0, getCpuFrequencyMhz(), true);
@@ -43,6 +48,7 @@ void loop()
         printf("%d ok\n", i++);
     }
     vTaskDelay(5000);
+    Serial.printf("connection: %d\n", Joystick.isConnected);
     // if (doIt)
     //     tone(BUZZER_PIN, 1);
     // else
