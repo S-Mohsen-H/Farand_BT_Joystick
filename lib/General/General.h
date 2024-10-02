@@ -21,7 +21,7 @@
 #define BLUETOOTHMANAGER_STACK_SIZE 0x8000
 #define READJOYSTICK_STACK_SIZE 0x1000
 #define ALARM_STACK_SIZE 0x2000
-#define LEDMANAGER_STACK_SIZE 0x400
+#define LEDMANAGER_STACK_SIZE 0x1000
 
 #define QUEUE_ADC_SIZE 5
 
@@ -38,7 +38,7 @@
 #define ADC_COUNT 2
 #define MAX_ADC_COUNT 3
 
-#define DIG_PIN_1 5
+#define DIG_PIN_1 17
 #define DIG_PIN_2 14
 #define DIG_PIN_3 4
 
@@ -69,6 +69,8 @@ extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 #define CMD_ALPHA 0xC1
 #define CMD_ALARM 0xC2
 #define CMD_LED 0xC3
+#define CMD_SILENT_MODE 0xC4
+#define CMD_BAT_THRESHOLD 0xC5
 
 #define BT_INITIAL_TRANSMIT_RATE_MS 100
 #define BT_SSID "ESP32_Joystick"

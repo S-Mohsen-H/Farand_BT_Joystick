@@ -3,7 +3,7 @@
 // #include "General.h"
 #include "Arduino.h"
 
-#define ALARM_DEBUG_MODE_UART true
+#define ALARM_DEBUG_MODE_UART false
 
 #define BUZZER_PIN 21
 

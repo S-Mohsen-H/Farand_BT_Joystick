@@ -18,6 +18,12 @@ typedef struct
     uint16_t bat;
 } MessageStruct;
 
+typedef struct
+{
+    uint8_t pin;
+    uint8_t state; // 0 off - 1 on - 2 blink
+} ledStateStruct;
+
 /**
  * @brief Reads values from analog joystick axes.
  * @note Encapsulated in function to serve modularity. Change if needed.

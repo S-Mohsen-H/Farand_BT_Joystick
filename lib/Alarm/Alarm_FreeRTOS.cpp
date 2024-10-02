@@ -72,32 +72,37 @@ void alarm_task(void *arg)
 			qAlarmMessage = xQueueCreate(100, sizeof(alarmMessage_typeDef));
 			logMsg(__ASSERT_FUNC, "qAlarmMessage recreated", 1);
 		}
-		// if (uxQueueMessagesWaiting(qAlarmMessage) > 0)
-		if (xQueueReceive(qAlarmMessage, &alarm, 1))
-		{
-			if (ALARM_DEBUG_MODE_UART)
-				printf("got alarm with pattern %x,period %d, count %d\n", alarm.Pattern, alarm.TimePeriod, alarm.AlarmCount);
-			for (uint8_t i = 0; i < alarm.TimePeriod; i++)
+		if (uxQueueMessagesWaiting(qAlarmMessage) > 0)
+			// printf("1\n");
+			if (xQueueReceive(qAlarmMessage, &alarm, 0))
 			{
-				if (alarm.Pattern & (1 << i))
+				printf("2\n");
+				if (ALARM_DEBUG_MODE_UART)
+					printf("got%salarm with pattern %x,period %d, count %d\n", alarm.BeepOnOff ? " " : " silent ", alarm.Pattern, alarm.TimePeriod, alarm.AlarmCount);
+				for (uint8_t i = 0; i < alarm.TimePeriod; i++)
 				{
-					if (usingTone)
-						tone(alarm.buzzerPin, alarm.frequency);
+					if (alarm.Pattern & (1 << i))
+					{
+						if (alarm.BeepOnOff)
+							if (usingTone)
+								tone(alarm.buzzerPin, alarm.frequency);
+							else
+								digitalWrite(alarm.buzzerPin, 1);
+						else
+							digitalWrite(alarm.buzzerPin, 0);
+					}
+					else if (usingTone)
+						noTone(alarm.buzzerPin);
 					else
-						digitalWrite(alarm.buzzerPin, 1);
+						digitalWrite(alarm.buzzerPin, 0);
+					// patternShifted >> 1;
+					vTaskDelay(31);
 				}
-				else if (usingTone)
+				if (usingTone)
 					noTone(alarm.buzzerPin);
 				else
 					digitalWrite(alarm.buzzerPin, 0);
-				// patternShifted >> 1;
-				vTaskDelay(31);
 			}
-			if (usingTone)
-				noTone(alarm.buzzerPin);
-			else
-				digitalWrite(alarm.buzzerPin, 0);
-		}
 		vTaskDelay(1);
 	}
 }
