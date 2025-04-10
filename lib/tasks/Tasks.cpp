@@ -6,9 +6,10 @@ QueueHandle_t qBluetoothMac;
 QueueHandle_t qBuzzer;
 QueueHandle_t qLED;
 QueueHandle_t qADC;
+QueueHandle_t qBatteryCharging;
 Joystick_TypeDef Joystick;
 uint16_t chargerVoltage;
-float batteryVoltageThreshold;
+float batteryVoltageThreshold = 3.45;
 bool silentMode = 0;
 
 void readBattery(uint16_t *bat, float alpha)
@@ -24,37 +25,39 @@ void readBattery(uint16_t *bat, float alpha)
     temp = 0;
     for (int j = 0; j < SAMPLE_COUNT; j++)
     {
-        temp += analogRead(BATTERY_SENSE_PIN);
+        temp += analogReadMilliVolts(BATTERY_SENSE_PIN);
     }
-    *bat = ((1 - alpha) * prev) + (alpha * (temp / SAMPLE_COUNT));
+    *bat = ((1 - alpha) * prev) + (alpha * (temp / SAMPLE_COUNT)) * 2;
     prev = *bat;
-    chargerVoltage = analogRead(ADC_PIN_4);
-    // if (millis() - now > 1000)
-    // {
-    //     printf("Charger: %d - Battery: %d , Battery Voltage:%f\n", chargerVoltage, *bat, Joystick.battery);
-    //     now = millis();
-    // }
+    // chargerVoltage = analogRead(ADC_PIN_4);
+    // chargerVoltage = prev * 2;
+    if (millis() - now > 1000)
+    {
+        printf("Battery: %d , Battery Voltage:%f , pgood: %d, Charger Sense: %d\n", *bat, Joystick.battery, analogReadMilliVolts(ANALOG_PIN_PGOOD_N), !digitalRead(DIGITAL_PIN_CHARGER_SENSE));
+        now = millis();
+    }
 
     // logMsg(__ASSERT_FUNC, ": battery level: ", 1);
     // Serial.println(*bat);
 #endif
 }
 bool dummyF = 0;
-void readButtons(bool arr[MAX_BUTTON_COUNT], int8 digPins[MAX_BUTTON_COUNT])
+void readButtons(bool arr[MAX_BUTTON_COUNT], uint8_t digPins[MAX_BUTTON_COUNT])
 {
 
-    for (int8 i = 0; i < BUTTON_COUNT; i++)
+    for (uint8_t i = 0; i < BUTTON_COUNT; i++)
     {
         // printf("read Button :%d\n", i);
         arr[i] = digitalRead(digPins[i]);
+        arr[0] = 1; // MIDDLE BUTTON IS ALWAYS HIGH.
         // arr[i] = dummyF;
         // dummyF = !dummyF;
     }
-    // for (int8 i = 0; i < BUTTON_COUNT; i++)
+    // for (uint8_t i = 0; i < BUTTON_COUNT; i++)
     //     message.button[i] = digitalRead(digPins[i]);
 }
 
-void readAxes(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT], float alpha)
+void readAxes(int16 arr[MAX_ADC_COUNT], uint8_t adcPins[MAX_ADC_COUNT], float alpha)
 {
     if (alpha > 1 || alpha < 0)
     {
@@ -130,8 +133,8 @@ void constructByteArray(MessageStruct *message, byte *arr)
 }
 void readJoystick_task(void *arg)
 {
-    int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
-    int8 digPins[MAX_BUTTON_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
+    uint8_t adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
+    uint8_t digPins[MAX_BUTTON_COUNT] = {DIGITAL_PIN_1, DIGITAL_PIN_2, DIGITAL_PIN_3};
     // printf("1 ok\n");
     alarmMessage_typeDef buttonBeep;
     buttonBeep.AlarmCount = 1;
@@ -140,7 +143,7 @@ void readJoystick_task(void *arg)
     buttonBeep.BeepOnOff = !silentMode;
     for (int i = 0; i < BUTTON_COUNT; i++)
         pinMode(digPins[i], INPUT);
-    pinMode(BATTERY_SENSE_PIN, INPUT);
+
     bool prevButton[MAX_BUTTON_COUNT];
     for (uint8_t i = 0; i < MAX_BUTTON_COUNT; i++)
         prevButton[i] = 1;
@@ -162,7 +165,7 @@ void readJoystick_task(void *arg)
 
         readAxes(message.adc, adcPins, Joystick.alpha);
         readButtons(message.button, digPins);
-        printf("Buttons: %d - %d - %d\n",message.button[0],message.button[1],message.button[2]);
+        // printf("Buttons: %d - %d - %d\n", message.button[0], message.button[1], message.button[2]);
         for (uint8_t i = 0; i < BUTTON_COUNT; i++)
         {
             if (message.button[i] != prevButton[i] && prevButton[i] == 1 && Joystick.isConnected)
@@ -171,7 +174,9 @@ void readJoystick_task(void *arg)
         }
         readBattery(&(message.bat), Joystick.alpha);
         // Joystick.battery = message.bat * 3.3 * 28.4 / 4096;
-        Joystick.battery = (message.bat * 3.3 * 28.4 / 10) / 4096;
+        // Joystick.battery = (message.bat * 3.3 * 28.4 / 10) / 4096;
+        // Joystick.battery = (message.bat * 3.348 * 2) / 4096;
+        Joystick.battery = float(message.bat) / 1000;
 
         uint8_t msg = 2;
         // printf("3 ok\n");
@@ -238,6 +243,7 @@ void bluetoothManager_task(void *arg)
     {
         uint32_t now;
         uint32_t now2;
+
         now2 = millis();
         if (!Joystick.isConnected)
         {
@@ -251,10 +257,14 @@ void bluetoothManager_task(void *arg)
                 // if (!(Joystick.isConnected) && millis() - now2 > 5000 && chargerVoltage < 3200)
                 if ((!(Joystick.isConnected)) && millis() - now2 > 5000)
                 {
-                    if (chargerVoltage < 3200)
+                    // if (chargerVoltage < 3200)
+                    // uint8_t pgood = digitalRead(ANALOG_PIN_PGOOD_N);
+                    uint8_t pgood = analogReadMilliVolts(ANALOG_PIN_PGOOD_N) > PGOOD_THRESHOLD;
+                    if (pgood == HIGH)
                         addAlarmToQueue(&disconnectionAlarm);
+
                     now2 = millis();
-                    printf("not connected\n");
+                    printf("not connected - charger: %d\n", pgood);
                 }
                 if (!Joystick.isConnected && millis() - now > BT_RESET_TIMEOUT_SEC * 1000 && BT_TIMEOUT_ACTIVE)
                 {
@@ -677,24 +687,25 @@ void Code_0x1A(uint8_t *Buf, uint32_t Len)
 }
 void ledManager_task(void *arg)
 {
-    pinMode(LED_CONNECTION_STATE_PIN, OUTPUT);
-    pinMode(LED_BATTERY_STATE_PIN, OUTPUT);
-    pinMode(LED_ALARM_PIN, OUTPUT);
-    uint8_t leds[3] = {LED_CONNECTION_STATE_PIN, LED_BATTERY_STATE_PIN, LED_ALARM_PIN};
+    pinMode(LED_GREEN, OUTPUT);
+    pinMode(LED_YELLOW, OUTPUT);
+    pinMode(LED_RED, OUTPUT);
+    uint8_t leds[3] = {LED_GREEN, LED_YELLOW, LED_RED};
     uint32_t now = millis();
     bool f = 0;
     ledStateStruct ledStates;
     ledStates.state = 10;
     ledStates.pin = 0;
     ledStateStruct msgTemp;
-    ledStateStruct green = {.pin = LED_CONNECTION_STATE_PIN, .state = 0};
-    ledStateStruct yellow = {.pin = LED_ALARM_PIN, .state = 0};
-    ledStateStruct red = {.pin = LED_BATTERY_STATE_PIN, .state = 0};
+    ledStateStruct green = {.pin = LED_GREEN, .state = 0};
+    ledStateStruct yellow = {.pin = LED_RED, .state = 0};
+    ledStateStruct red = {.pin = LED_YELLOW, .state = 0};
     digitalWrite(green.pin, green.state);
     digitalWrite(yellow.pin, yellow.state);
     digitalWrite(red.pin, red.state);
     while (1)
     {
+        vTaskDelay(10);
         if (uxQueueMessagesWaiting(qLED) > 0)
         {
             xQueueReceive(qLED, &msgTemp, 0);
@@ -778,3 +789,30 @@ void ledManager_task(void *arg)
         // }
     }
 }
+
+void readBatteryWhileCharging_task(void *arg)
+{
+    uint16_t batmV;
+    uint16_t timer = 0;
+    while (1)
+    {
+        timer++;
+        batmV = 2 * analogReadMilliVolts(BATTERY_SENSE_PIN);
+        if (batmV < 2000)
+        {
+            timer = 0;
+            batmV_GLOBAL = 0;
+        }
+        if (timer > 400)
+        {
+            batmV_GLOBAL = batmV;
+        }
+        vTaskDelay(5);
+    }
+}
+// uint16_t readBatteryWhileCharging()
+// {
+//     static uint16_t batmV;
+//     uint16_t timer = 0;
+
+// }

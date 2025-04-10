@@ -5,7 +5,7 @@
 
 #define ALARM_DEBUG_MODE_UART false
 
-#define BUZZER_PIN 21
+#define BUZZER_PIN 4
 
 typedef struct
 {

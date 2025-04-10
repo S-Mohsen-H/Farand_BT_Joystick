@@ -10,6 +10,10 @@
 
 /////////////////////////////** @note DEFINE MACROS *///////////////////////
 
+#define BT_SSID_1 "PIKA Joystick 1"
+#define BT_SSID_2 "PIKA Joystick 2"
+#define BT_SSID BT_SSID_1
+
 #ifndef int8
 #define int8 uint8_t
 #endif
@@ -25,27 +29,33 @@
 
 #define QUEUE_ADC_SIZE 5
 
-#define LED_CONNECTION_STATE_PIN 23
-#define LED_BATTERY_STATE_PIN 18
-#define LED_ALARM_PIN 25
-
-#define BUZZER_PIN 21
-#define ADC_PIN_1 36
-#define ADC_PIN_2 39
-#define ADC_PIN_3 34
-#define ADC_PIN_4 32
+#define LED_GREEN 18
+#define LED_YELLOW 12
+#define LED_RED 23
+// #define LED_GREEN 23
+// #define LED_YELLOW 18
+// #define LED_RED 12
+// #define BUZZER_PIN 4
+#define ADC_PIN_1 39
+#define ADC_PIN_2 34
+#define ADC_PIN_3 35
+// #define ADC_PIN_4 32
 
 #define ADC_COUNT 2
 #define MAX_ADC_COUNT 3
 
-#define DIG_PIN_1 17
-#define DIG_PIN_2 14
-#define DIG_PIN_3 4
+#define DIGITAL_PIN_1 25
+#define DIGITAL_PIN_2 33
+#define DIGITAL_PIN_3 14
+#define ANALOG_PIN_PGOOD_N 27
+#define PGOOD_THRESHOLD 170
+#define DIGITAL_PIN_CHARGING_N 26
+#define DIGITAL_PIN_CHARGER_SENSE 17
 
 #define BUTTON_COUNT 3
 #define MAX_BUTTON_COUNT 3
 
-#define BATTERY_SENSE_PIN 26
+#define BATTERY_SENSE_PIN 36
 // #define BYTE_ARRAY_SIZE (ADC_COUNT * 1.5 + 1 + 2)
 #define BYTE_ARRAY_SIZE 16
 #define BYTE1A 0x1A
@@ -73,7 +83,7 @@ extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 #define CMD_BAT_THRESHOLD 0xC5
 
 #define BT_INITIAL_TRANSMIT_RATE_MS 100
-#define BT_SSID "ESP32_Joystick"
+
 #define BT_RESET_TIMEOUT_SEC 100
 #define BT_TIMEOUT_ACTIVE true
 
@@ -104,6 +114,7 @@ extern QueueHandle_t qBluetoothMac;
 extern QueueHandle_t qLED;
 extern QueueHandle_t qBuzzer;
 extern QueueHandle_t qADC;
+extern QueueHandle_t qBatteryCharging;
 
 #define ADC_TASK_ENABLED 1
 #define BT_TASK_ENABLED 1
@@ -112,11 +123,12 @@ extern QueueHandle_t qADC;
 
 extern Joystick_TypeDef Joystick;
 // extern JBT;
+extern uint16_t batmV_GLOBAL;
 
 ///////////////////////////** @note FUNCTIONS */////////////////////////
 
+extern uint16_t getBatterySOC(uint16_t voltage);
 extern std::string intToBinaryString(int number);
-
 extern String numToBin(uint16_t num);
 /** @note end FUNCTIONS
  */

@@ -8,14 +8,42 @@
 // hw_timer_t *hwAlarmTimer = NULL;
 
 // void IRAM_ATTR func();
-
+static uint8_t getPGood()
+{
+    uint8_t pgood;
+    uint32_t pgoodVal = 0;
+    if (BT_SSID == BT_SSID_1)
+    {
+        pgoodVal = analogReadMilliVolts(ANALOG_PIN_PGOOD_N);
+        pgoodVal += analogReadMilliVolts(ANALOG_PIN_PGOOD_N);
+        pgoodVal += analogReadMilliVolts(ANALOG_PIN_PGOOD_N);
+        pgoodVal += analogReadMilliVolts(ANALOG_PIN_PGOOD_N);
+        pgoodVal += analogReadMilliVolts(ANALOG_PIN_PGOOD_N);
+        pgoodVal = pgoodVal / 5;
+        pgood = pgoodVal > PGOOD_THRESHOLD;
+        Serial.printf("ssid1 pgood is %d\n", pgood);
+        return pgood;
+    }
+    else
+    {
+        pgood = digitalRead(DIGITAL_PIN_CHARGER_SENSE) == HIGH ? LOW : HIGH;
+        Serial.printf("ssid2 pgood is %d\n", pgood);
+        return pgood;
+    }
+}
+uint16_t batmV_GLOBAL;
 void setup()
 {
-    pinMode(LED_CONNECTION_STATE_PIN, OUTPUT);
-    pinMode(LED_BATTERY_STATE_PIN, OUTPUT);
-    pinMode(LED_ALARM_PIN, OUTPUT);
+    pinMode(LED_GREEN, OUTPUT);
+    pinMode(LED_YELLOW, OUTPUT);
+    pinMode(LED_RED, OUTPUT);
     // pinMode(ADC_PIN_3, INPUT);
-    pinMode(BUZZER_PIN, OUTPUT);///////////////////
+    pinMode(BUZZER_PIN, OUTPUT); ///////////////////
+    pinMode(BATTERY_SENSE_PIN, INPUT);
+    pinMode(ANALOG_PIN_PGOOD_N, INPUT);
+    pinMode(DIGITAL_PIN_CHARGING_N, INPUT);
+    pinMode(DIGITAL_PIN_CHARGER_SENSE, INPUT);
+
     tone(BUZZER_PIN, 2000, 50);
 
     Serial.begin(115200);
@@ -24,10 +52,92 @@ void setup()
     qBluetoothMac = xQueueCreate(50, sizeof(uint8_t));
     qLED = xQueueCreate(50, sizeof(ledStateStruct));
     qADC = xQueueCreate(QUEUE_ADC_SIZE, sizeof(float));
+    // qBatteryCharging = xQueueCreate(100, sizeof(uint8_t));
+    delay(1000);
 
+    uint8_t pgood = getPGood();
+
+    uint8_t charging = digitalRead(DIGITAL_PIN_CHARGING_N);
+    charging = digitalRead(DIGITAL_PIN_CHARGING_N);
+    // Serial.println("got to 1");
+
+    // uint16_t batmV = 2 * analogReadMilliVolts(BATTERY_SENSE_PIN);
+    // batmV = 0;
+    Serial.printf("pgood is %d\n", pgood);
+    TaskHandle_t readBatteryWhileCharging_taskHandle;
+    xTaskCreate(readBatteryWhileCharging_task, "charging task", LEDMANAGER_STACK_SIZE, NULL, 10, &readBatteryWhileCharging_taskHandle); /////////////////////
+    int now = millis();
+    while (pgood == LOW)
+    {
+
+        delay(1);
+        static uint8_t led = 0;
+        // static uint64_t timer = 0;
+        // timer++;
+        // batmV = 2 * analogReadMilliVolts(BATTERY_SENSE_PIN);
+        // if (batmV < 2000)
+        // {
+        //     timer = 0;
+        //     batmV = 0;
+        // }
+        // if (timer > 900)
+        // {
+        //     batmV = 2 * analogReadMilliVolts(BATTERY_SENSE_PIN);
+        // }
+        if (millis() - now > 1000)
+        {
+            now = millis();
+            if (led == 0 && charging == LOW)
+            {
+                digitalWrite(LED_GREEN, HIGH);
+                digitalWrite(LED_RED, LOW);
+                digitalWrite(LED_YELLOW, LOW);
+                led = 1;
+            }
+            else if (led == 1 && charging == LOW)
+            {
+                digitalWrite(LED_GREEN, LOW);
+                digitalWrite(LED_RED, LOW);
+                digitalWrite(LED_YELLOW, LOW);
+                led = 0;
+            }
+            else if (charging == HIGH && batmV_GLOBAL == 0 && led == 1)
+            {
+                digitalWrite(LED_GREEN, LOW);
+                digitalWrite(LED_RED, HIGH);
+                digitalWrite(LED_YELLOW, LOW);
+                led = 0;
+            }
+            else if (charging == HIGH && batmV_GLOBAL == 0 && led == 0)
+            {
+                digitalWrite(LED_GREEN, LOW);
+                digitalWrite(LED_RED, LOW);
+                digitalWrite(LED_YELLOW, LOW);
+                led = 1;
+            }
+            else if (charging == HIGH)
+            {
+                digitalWrite(LED_GREEN, HIGH);
+                digitalWrite(LED_RED, LOW);
+                digitalWrite(LED_YELLOW, LOW);
+            }
+            pgood = getPGood();
+            charging = digitalRead(DIGITAL_PIN_CHARGING_N);
+            // batmV = 2 * analogReadMilliVolts(BATTERY_SENSE_PIN);
+            if (pgood)
+            {
+                Serial.println("got to 6");
+                ESP.restart();
+            }
+            // Serial.println("got to 7");
+            Serial.printf("Charger Sense:%d - Battery Voltage: %d mFV - pgood: %d\n", pgood, batmV_GLOBAL, analogReadMilliVolts(ANALOG_PIN_PGOOD_N));
+        }
+    }
+    vTaskDelete(readBatteryWhileCharging_taskHandle);
+    // vQueueDelete(qBatteryCharging);
     xTaskCreate(taskManager_task, "Serial Commands Task", TASKMANAGER_STACK_SIZE, NULL, 2, NULL);
     xTaskCreate(alarm_task, "Alarm Task", ALARM_STACK_SIZE, NULL, 19, NULL);
-    xTaskCreate(ledManager_task, "LED Task", LEDMANAGER_STACK_SIZE, NULL, 10, NULL);/////////////////////
+    xTaskCreate(ledManager_task, "LED Task", LEDMANAGER_STACK_SIZE, NULL, 10, NULL); /////////////////////
     // esp_task_wdt_init(CONFIG_ESP_TASK_WDT_TIMEOUT_S - 3, CONFIG_ESP_TASK_WDT_PANIC);
     // xTimerCreate("Alarm timer", 31.25, true, NULL, Farand_Update_Alarm);
 
@@ -45,8 +155,7 @@ void loop()
     if (1) ////////////////////////
     {
         static uint8_t i = 0;
-        printf("Battery: %f - %d ok\n",Joystick.battery, i++);
-        
+        printf("Battery: %f - %d ok\n", Joystick.battery, i++);
     }
     vTaskDelay(5000);
     Serial.printf("connection: %d\n", Joystick.isConnected); //////////////////////
@@ -112,9 +221,9 @@ void loop()
 // // // // #define ADC_COUNT 3
 // // // // #define MAX_ADC_COUNT 3
 
-// // // // #define DIG_PIN_1 25
-// // // // #define DIG_PIN_2 26
-// // // // #define DIG_PIN_3 27
+// // // // #define DIGITAL_PIN_1 25
+// // // // #define DIGITAL_PIN_2 26
+// // // // #define DIGITAL_PIN_3 27
 
 // // // // #define BUTTON_COUNT 1
 // // // // #define MAX_BUTTON_COUNT 3
@@ -134,7 +243,7 @@ void loop()
 // // // // #define INITIAL_SAMPLING_COEFFICIENT 0.8
 // // // // #define LED_PIN 23
 // // // // int8 adcPins[MAX_ADC_COUNT] = {ADC_PIN_1, ADC_PIN_2, ADC_PIN_3};
-// // // // int8 digPins[MAX_BUTTON_COUNT] = {DIG_PIN_1, DIG_PIN_2, DIG_PIN_3};
+// // // // int8 digPins[MAX_BUTTON_COUNT] = {DIGITAL_PIN_1, DIGITAL_PIN_2, DIGITAL_PIN_3};
 // // // // float alpha;
 // // // // bool b;
 // // // // BluetoothSerial SerialBT;
@@ -319,7 +428,8 @@ void loop()
 // #include "Arduino.h"
 // #define LED1_PIN 23
 // #define LED2_PIN 18
-// #define LED3_PIN 25
+// #define LED3_PIN 12
+
 // void setup()
 // {
 //     Serial.begin(115200);
@@ -336,9 +446,11 @@ void loop()
 //     digitalWrite(LED1_PIN, 1);
 //     digitalWrite(LED2_PIN, 1);
 //     digitalWrite(LED3_PIN, 1);
+//     Serial.print("Hello1\n");
 //     delay(1000);
 //     digitalWrite(LED1_PIN, 0);
 //     digitalWrite(LED2_PIN, 0);
 //     digitalWrite(LED3_PIN, 0);
+//     Serial.print("Hello2\n");
 //     delay(500);
 // }

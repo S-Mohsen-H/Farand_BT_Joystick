@@ -76,7 +76,7 @@ void alarm_task(void *arg)
 			// printf("1\n");
 			if (xQueueReceive(qAlarmMessage, &alarm, 0))
 			{
-				printf("2\n");
+				// printf("2\n");
 				if (ALARM_DEBUG_MODE_UART)
 					printf("got%salarm with pattern %x,period %d, count %d\n", alarm.BeepOnOff ? " " : " silent ", alarm.Pattern, alarm.TimePeriod, alarm.AlarmCount);
 				for (uint8_t i = 0; i < alarm.TimePeriod; i++)
