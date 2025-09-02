@@ -11,6 +11,9 @@
 #define USING_SINGLE_BYTE_FOR_BUTTONS
 // #define USING_MULTI_BYTES_FOR_BUTTONS
 
+#define ADC_TASK_ENABLED 1
+#define BT_TASK_ENABLED 1
+
 typedef struct
 {
     uint16_t adc[MAX_ADC_COUNT];

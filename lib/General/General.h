@@ -8,11 +8,8 @@
 #include "bitset"
 #include "string"
 
-/////////////////////////////** @note DEFINE MACROS *///////////////////////
+/////////////////////////////** @note DEFINE STATEMENTS *///////////////////////
 
-#define BT_SSID_1 "PIKA Joystick 1"
-#define BT_SSID_2 "PIKA Joystick 2"
-#define BT_SSID BT_SSID_1
 
 #ifndef int8
 #define int8 uint8_t
@@ -20,6 +17,10 @@
 #ifndef int16
 #define int16 uint16_t
 #endif
+
+#define BT_SSID_1 "PIKA Joystick 1"
+#define BT_SSID_2 "PIKA Joystick 2"
+#define BT_SSID BT_SSID_1 ///////////////////////////////////IMPORTANT: REDEFINE FOR EACH DEVICE
 
 #define TASKMANAGER_STACK_SIZE 0x3000
 #define BLUETOOTHMANAGER_STACK_SIZE 0x8000
@@ -32,14 +33,10 @@
 #define LED_GREEN 18
 #define LED_YELLOW 12
 #define LED_RED 23
-// #define LED_GREEN 23
-// #define LED_YELLOW 18
-// #define LED_RED 12
-// #define BUZZER_PIN 4
+
 #define ADC_PIN_1 39
 #define ADC_PIN_2 34
 #define ADC_PIN_3 35
-// #define ADC_PIN_4 32
 
 #define ADC_COUNT 2
 #define MAX_ADC_COUNT 3
@@ -56,7 +53,6 @@
 #define MAX_BUTTON_COUNT 3
 
 #define BATTERY_SENSE_PIN 36
-// #define BYTE_ARRAY_SIZE (ADC_COUNT * 1.5 + 1 + 2)
 #define BYTE_ARRAY_SIZE 16
 #define BYTE1A 0x1A
 #define BYTE1 0xAA
@@ -116,13 +112,11 @@ extern QueueHandle_t qBuzzer;
 extern QueueHandle_t qADC;
 extern QueueHandle_t qBatteryCharging;
 
-#define ADC_TASK_ENABLED 1
-#define BT_TASK_ENABLED 1
+
 
 /////////////////////////////** @note VARIABLES *///////////////////////
 
 extern Joystick_TypeDef Joystick;
-// extern JBT;
 extern uint16_t batmV_GLOBAL;
 
 ///////////////////////////** @note FUNCTIONS */////////////////////////
