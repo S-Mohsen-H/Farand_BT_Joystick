@@ -2,7 +2,6 @@
 #define __ALARM_FREERTOS_H
 // #include "General.h"
 #include "Arduino.h"
-#define BUZZER_PIN 21
 
 #define ALARM_DEBUG_MODE_UART false
 

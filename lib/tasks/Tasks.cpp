@@ -180,6 +180,7 @@ void bluetoothManager_task(void *arg)
     {
         xQueueSend(qTransmitBT, mac + i, 1000);
     }
+
     bool err;
     alarmMessage_typeDef rebootAlarm;
     rebootAlarm.Pattern = MEDIUM_BEEP_X1;
@@ -206,7 +207,6 @@ void bluetoothManager_task(void *arg)
             xQueueSend(qLED, &ledsOff, 100);
             while (!Joystick.isConnected)
             {
-
                 Joystick.isConnected = SerialBT.connected(portMAX_DELAY);
                 if ((!(Joystick.isConnected)) && millis() - now2 > 5000)
                 {
@@ -226,28 +226,11 @@ void bluetoothManager_task(void *arg)
                     rebootAlarm.BeepOnOff = !silentMode;
                     addAlarmToQueue(&rebootAlarm);
                     logMsg(__ASSERT_FUNC, "restarting esp", 0);
-                    // vTaskDelay(1010);
+                     vTaskDelay(1010);
                     ESP.restart(); /** @note The device might need a reboot if connection isn't established within the timeout*/
                 }
-                // if (!Joystick.isConnected && (millis() - now2) > 3000)
-                // {
-                //     alarmMessage_typeDef notConnectedAlarm;
-                //     notConnectedAlarm.Pattern = 0xFFF;
-                //     notConnectedAlarm.AlarmCount = 1;
-                //     notConnectedAlarm.BeepOnOff = 1;
-                //     notConnectedAlarm.buzzerPin = BUZZER_PIN;
-                //     notConnectedAlarm.frequency = 3000;
-                //     notConnectedAlarm.TimePeriod = 12;
-                //     addAlarmToQueue(&notConnectedAlarm);
-                //     now2 = millis();
-                // }
                 vTaskDelay(1);
             }
-            alarmMessage.Pattern = 0xF0F00000;
-            alarmMessage.frequency = 3000;
-            alarmMessage.TimePeriod = 32;
-            alarmMessage.AlarmCount = 1;
-            addAlarmToQueue(&alarmMessage);
             logMsg(__ASSERT_FUNC, "Bluetooth_Connection", Joystick.isConnected);
 
             printf("Took %d seconds\n", (millis() - now) / 1000);
@@ -411,7 +394,7 @@ void bluetoothManager_task(void *arg)
         if (err)
         {
             constructByteArray(&message, byteArr);
-            if (Joystick.isConnected == true)
+            if (SerialBT.connected(10))
             {
                 SerialBT.write(byteArr, sizeof(byteArr));
                 if (SerialBT.available())
@@ -496,7 +479,6 @@ void taskManager_task(void *arg)
     TaskHandle_t bluetoothManager_taskHandle = NULL;
     int8 loop = 1;
     int8 comm[10];
-    uint8_t ledMessage[50];
     if (ADC_TASK_ENABLED)
         xTaskCreate(readJoystick_task, "Analog Read Task", READJOYSTICK_STACK_SIZE, NULL, 20, NULL);
     if (BT_TASK_ENABLED)
@@ -506,13 +488,14 @@ void taskManager_task(void *arg)
     while (1)
     {
         vTaskDelay(1);
-        if (uxQueueMessagesWaiting(qTransmitBT) == 100)
+        if (uxQueueMessagesWaiting(qTransmitBT) == 10)
         {
             vQueueDelete(qTransmitBT);
-            qTransmitBT = xQueueCreate(100, sizeof(MessageStruct));
+            qTransmitBT = xQueueCreate(10, sizeof(MessageStruct));
             logMsg(__ASSERT_FUNC, "qTransmitBT recreated", 1);
             // Joystick.isConnected = 0;
         }
+        
         if (Serial.available())
         {
             comm[0] = Serial.read();

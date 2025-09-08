@@ -88,8 +88,6 @@ extern uint8_t autoDetectionPacket[COMMAND_PACKET_SIZE];
 #define INITIAL_SAMPLING_COEFFICIENT 0.8
 
 #define UART_DEBUG_MODE 0
-
-#define MAC_MESSAGE 0x10
 // #define DEBUG_READAXES
 // #define DEBUG_READAXES2
 // #define DEBUG_BT_PRINT_VALUES
