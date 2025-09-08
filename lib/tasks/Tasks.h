@@ -11,12 +11,21 @@
 #define USING_SINGLE_BYTE_FOR_BUTTONS
 // #define USING_MULTI_BYTES_FOR_BUTTONS
 
+#define ADC_TASK_ENABLED 1
+#define BT_TASK_ENABLED 1
+
 typedef struct
 {
     uint16_t adc[MAX_ADC_COUNT];
     bool button[MAX_BUTTON_COUNT];
     uint16_t bat;
 } MessageStruct;
+
+typedef struct
+{
+    uint8_t pin;
+    uint8_t state; // 0 off - 1 on - 2 blink
+} ledStateStruct;
 
 /**
  * @brief Reads values from analog joystick axes.
@@ -25,7 +34,7 @@ typedef struct
  * @param adcPins array of adc pin numbers.
  * @retval does not return. the values are changed in the array.
  */
-extern void readAxes(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT], float alpha);
+extern void readAxes(int16 arr[MAX_ADC_COUNT], uint8_t adcPins[MAX_ADC_COUNT], float alpha);
 
 /**
  * @brief Reads values from joystick buttons.
@@ -34,7 +43,7 @@ extern void readAxes(int16 arr[MAX_ADC_COUNT], int8 adcPins[MAX_ADC_COUNT], floa
  * @param digPins array of digital pin numbers.
  * @retval does not return. the values are changed in the array.
  */
-extern void readButtons(bool arr[MAX_BUTTON_COUNT], int8 digPins[MAX_BUTTON_COUNT]);
+extern void readButtons(bool arr[MAX_BUTTON_COUNT], uint8_t digPins[MAX_BUTTON_COUNT]);
 
 /**
  * @brief Constructs the message to be transmitted through bluetooth
@@ -47,9 +56,10 @@ extern void constructByteArray(MessageStruct *message, byte *arr);
 
 extern void readJoystick_task(void *arg);
 extern void bluetoothManager_task(void *arg);
-extern void taskManager_task(void *arg);
-extern void buzzManager_task(void *arg);
 extern void ledManager_task(void *arg);
+extern void taskManager_task(void *arg);
+extern void readBatteryWhileCharging_task(void *arg);
+
 /**
  * @brief Checks if any elements of the byte array is 0d26 (0x1A)
  * @param Buf The array to be coded

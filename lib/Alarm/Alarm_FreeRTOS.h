@@ -4,7 +4,10 @@
 #include "Arduino.h"
 #define BUZZER_PIN 21
 
-#define ALARM_DEBUG_MODE_UART true
+#define ALARM_DEBUG_MODE_UART false
+
+#define BUZZER_PIN 4
+
 typedef struct
 {
 	uint32_t Pattern;
